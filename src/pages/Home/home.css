@@ -1,0 +1,263 @@
+﻿:root {
+    --purple: #6a5aa6;
+    --purple-dark: #4b3c83;
+    /* Home background is transparent */
+    --bg: transparent;
+    --tile: #1f2937;
+    --tile2: #111827;
+    --tileText: #f9fafb;
+    --tileSub: #cbd5e1;
+    --shadow: 0 12px 28px rgba(0,0,0,.14);
+    --shadowHover: 0 16px 36px rgba(0,0,0,.22);
+    --radius: 14px;
+    /* Icon highlight colors */
+    --icon-hover: #22c55e; /* green */
+    --icon-active: #facc15; /* yellow */
+    /* ✅ BLUE background glow */
+    --icon-bg: rgba(106, 90, 166, .25); /* idle purple tint */
+    --icon-bg-hover: rgba(59, 130, 246, .22); /* blue tint on hover */
+    --icon-bg-active: rgba(59, 130, 246, .32); /* stronger blue on click */
+
+    --icon-glow-blue: rgba(59, 130, 246, .55);
+    --icon-glow-blue-soft: rgba(59, 130, 246, .28);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.shell {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Top bar */
+.topbar {
+    position: relative;
+    height: 56px;
+    background: linear-gradient(90deg, var(--purple-dark), var(--purple));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+
+.topbar__title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: .2px;
+    pointer-events: none;
+}
+
+.topbar__iconBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.22);
+    background: rgba(255,255,255,.10);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+}
+
+    .topbar__iconBtn:hover {
+        background: rgba(255,255,255,.18);
+        transform: translateY(-1px);
+    }
+
+/* Main area */
+.content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 16px 18px 10px;
+}
+
+.content__inner {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.headline {
+    margin: 2px 0 6px;
+    font-size: 24px;
+    letter-spacing: .2px;
+    color: #0f172a;
+}
+
+.subhead {
+    margin: 0 0 14px;
+    color: #334155;
+}
+
+/* Grid */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+@media (min-width: 1120px) {
+    .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tile */
+.tile {
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    color: var(--tileText);
+    background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)), linear-gradient(135deg, var(--tile), var(--tile2));
+    box-shadow: var(--shadow);
+    transition: transform .16s ease, box-shadow .16s ease, outline .16s ease;
+    outline: 1px solid rgba(255,255,255,.08);
+}
+
+    .tile:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadowHover);
+        outline: 1px solid rgba(255,255,255,.16);
+    }
+
+    .tile:active {
+        transform: translateY(0px);
+    }
+
+/* ✅ Icon block (no font fallback, pure SVG) */
+.tile__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    /* important: stop text fallback */
+    font-size: 0;
+    line-height: 0;
+    background: var(--icon-bg);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    transition: background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+    /* harden SVG render */
+    .tile__icon svg {
+        width: 22px;
+        height: 22px;
+        display: block;
+        stroke-width: 2;
+        color: rgba(255, 255, 255, 0.92);
+        transition: color .12s ease, filter .12s ease;
+    }
+
+    /* kill injected pseudo-content (safety) */
+    .tile__icon::before,
+    .tile__icon::after {
+        content: none !important;
+    }
+
+/* ✅ Blue glow background when highlighted (hover/focus) */
+.tile:hover .tile__icon,
+.tile:focus-visible .tile__icon {
+    background: var(--icon-bg-hover);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 0 16px var(--icon-glow-blue-soft), 0 0 28px var(--icon-glow-blue);
+    transform: translateY(-1px);
+}
+
+/* ✅ Stronger blue glow on click */
+.tile:active .tile__icon {
+    background: var(--icon-bg-active);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 18px var(--icon-glow-blue), 0 0 34px rgba(59, 130, 246, 0.65);
+    transform: translateY(0px);
+}
+
+/* Green icon when highlighted */
+.tile:hover .tile__icon svg,
+.tile:focus-visible .tile__icon svg {
+    color: var(--icon-hover);
+    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.35));
+}
+
+/* Yellow icon when clicked */
+.tile:active .tile__icon svg {
+    color: var(--icon-active);
+    filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.35));
+}
+
+.tile:focus-visible {
+    outline: 2px solid rgba(34, 197, 94, 0.40);
+    outline-offset: 2px;
+}
+
+.tile__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.tile__title {
+    font-weight: 800;
+    font-size: 15.5px;
+    letter-spacing: .2px;
+}
+
+.tile__subtitle {
+    margin-top: 2px;
+    font-size: 12.8px;
+    color: var(--tileSub);
+    opacity: .95;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tile__chev {
+    font-size: 24px;
+    opacity: .65;
+    margin-left: 6px;
+}
+
+/* Reserved whitespace area */
+.homeBottomSpace {
+    height: 110px;
+    flex-shrink: 0;
+}
+
+/* Footer */
+.footer {
+    height: 40px;
+    background: linear-gradient(90deg, var(--purple-dark), var(--purple));
+    color: rgba(255,255,255,.92);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 12.5px;
+}
+
+.footer__right {
+    opacity: .92;
+}

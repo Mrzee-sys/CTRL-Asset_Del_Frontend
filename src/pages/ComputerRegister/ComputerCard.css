@@ -1,0 +1,458 @@
+﻿:root {
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #e5e7eb;
+    --shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
+    --radius: 14px;
+    /* ✅ Purple theme (matches your Add Asset screenshot) */
+    --primary: #5b4bd6; /* change this if your purple differs */
+    --primaryHover: #4f40c9;
+    --primarySoft: rgba(91, 75, 214, 0.12);
+    --danger: #dc2626;
+    --liveBg: rgba(34, 197, 94, 0.14);
+    --liveText: #15803d;
+    --storeBg: rgba(234, 179, 8, 0.18);
+    --storeText: #92400e;
+    --repairBg: rgba(59, 130, 246, 0.16);
+    --repairText: #1d4ed8;
+    --retiredBg: rgba(239, 68, 68, 0.14);
+    --retiredText: #b91c1c;
+    --disposedBg: rgba(100, 116, 139, 0.14);
+    --disposedText: #334155;
+    --otherBg: rgba(100, 116, 139, 0.14);
+    --otherText: #334155;
+}
+
+/* =========================================================
+   PAGE LAYOUT
+   ========================================================= */
+.assetPage {
+    height: 100vh;
+    overflow: hidden;
+    background: radial-gradient(900px 450px at 15% 0%, rgba(91, 75, 214, 0.10), transparent 55%), radial-gradient(700px 350px at 100% 10%, rgba(34, 197, 94, 0.08), transparent 50%), var(--bg);
+    color: var(--text);
+}
+
+/* ✅ Wider content area */
+.assetShell {
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    /* slightly tighter to reduce vertical scroll */
+    padding: 18px 22px 14px;
+    box-sizing: border-box;
+}
+
+/* =========================================================
+   ✅ BUTTON SYSTEM (LOCAL)
+   - ensures Save/Cancel/Add/Back all match theme on this page
+   ========================================================= */
+.assetPage .btn {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    height: 42px;
+    padding: 0 16px;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
+}
+
+    .assetPage .btn:active {
+        transform: translateY(1px);
+    }
+
+    .assetPage .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+/* ✅ Primary purple (used by Save/Cancel/Add) */
+.assetPage .btnPrimary {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.10);
+    box-shadow: 0 10px 20px rgba(91, 75, 214, 0.18);
+}
+
+    .assetPage .btnPrimary:hover {
+        background: var(--primaryHover);
+    }
+
+/* Ghost / Back button: still themed */
+.assetPage .btnGhost {
+    background: #ffffff;
+    color: var(--text);
+    border-color: var(--border);
+    box-shadow: none;
+}
+
+    .assetPage .btnGhost:hover {
+        border-color: rgba(91, 75, 214, 0.45);
+        box-shadow: 0 0 0 3px var(--primarySoft);
+    }
+
+/* DangerOutline: keep same theme per your requirement (purple), not red */
+.assetPage .btnDangerOutline {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.10);
+    box-shadow: 0 10px 20px rgba(91, 75, 214, 0.18);
+}
+
+    .assetPage .btnDangerOutline:hover {
+        background: var(--primaryHover);
+    }
+
+/* =========================================================
+   ✅ COMPACT HEADER (reduce vertical space)
+   ========================================================= */
+.assetHeader {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    /* tighter than your current 18px padding */
+    padding: 10px 14px;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.assetHeader__nav {
+    display: flex;
+    align-items: center;
+}
+
+.assetHeader__main {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+/* smaller logos */
+.headerLogos {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logoBox {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 8px 14px rgba(2, 6, 23, 0.06);
+}
+
+.logoBox--big {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+}
+
+.logoImg {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.assetHeader__titleBlock {
+    min-width: 0;
+}
+
+/* smaller title */
+.assetHeader__title {
+    font-size: 24px;
+    line-height: 1.15;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.assetHeader__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.metaDot {
+    opacity: 0.7;
+}
+
+/* actions: in a row to reduce height */
+.assetHeader__actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* =========================================================
+   BODY LAYOUT
+   ========================================================= */
+.assetGrid {
+    margin-top: 12px; /* tighter */
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 14px;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+    .assetGrid > .panel {
+        height: 100%;
+        overflow: auto;
+    }
+
+/* =========================================================
+   PANELS (tighter to reduce scroll)
+   ========================================================= */
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px; /* was 18 */
+    box-sizing: border-box;
+    min-height: 0;
+}
+
+.panel__title {
+    font-weight: 900;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+/* =========================================================
+   FIELDS (tighter)
+   ========================================================= */
+.fieldGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+}
+
+@media (max-width: 640px) {
+    .fieldGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.field {
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fbfcfe;
+}
+
+.fieldFull {
+    grid-column: 1 / -1;
+}
+
+.label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+.value {
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--text);
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    background: #ffffff;
+    min-height: 38px;
+}
+
+input.value,
+select.value,
+textarea.value {
+    outline: none;
+}
+
+    input.value:focus,
+    select.value:focus,
+    textarea.value:focus {
+        border-color: rgba(91, 75, 214, 0.55);
+        box-shadow: 0 0 0 3px var(--primarySoft);
+    }
+
+/* =========================================================
+   PILLS
+   ========================================================= */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 11px;
+}
+
+.pillLive {
+    background: var(--liveBg);
+    color: var(--liveText);
+}
+
+.pillStore {
+    background: var(--storeBg);
+    color: var(--storeText);
+}
+
+.pillRepair {
+    background: rgba(91, 75, 214, 0.14);
+    color: var(--primary);
+}
+
+.pillRetired {
+    background: var(--retiredBg);
+    color: var(--retiredText);
+}
+
+.pillDisposed {
+    background: var(--disposedBg);
+    color: var(--disposedText);
+}
+
+.pillOther {
+    background: var(--otherBg);
+    color: var(--otherText);
+}
+
+/* =========================================================
+   SIDE BLOCKS
+   ========================================================= */
+.sideBlocks {
+    display: grid;
+    gap: 10px;
+}
+
+.sideBlock {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    background: var(--panel);
+}
+
+.sideBlock__title {
+    font-weight: 900;
+    font-size: 11px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.sideBlock__text {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* =========================================================
+   QR
+   ========================================================= */
+.qrBox {
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    min-height: 180px;
+}
+
+.qrImg {
+    width: 130px;
+    height: 130px;
+    object-fit: contain;
+}
+
+.qrPlaceholder {
+    width: 110px;
+    height: 110px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.qrValue {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.sideBlock.qrReady {
+    border-color: rgba(34, 197, 94, 0.65);
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.14);
+}
+
+.qrPrintLink {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--primary);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+    .qrPrintLink:hover {
+        color: var(--primaryHover);
+    }
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 920px) {
+    .assetHeader {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .assetHeader__actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .assetPage {
+        height: auto;
+        overflow: auto;
+    }
+
+    .assetShell {
+        height: auto;
+        display: block;
+        padding: 18px 16px 28px;
+        max-width: 100%;
+    }
+
+    .assetGrid {
+        grid-template-columns: 1fr;
+    }
+}
+

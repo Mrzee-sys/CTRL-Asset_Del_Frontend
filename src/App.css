@@ -1,0 +1,120 @@
+﻿html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+}
+
+html,
+body {
+    overflow: hidden;
+}
+
+:root {
+    /* panel glow */
+    --glow-rgb: 106, 90, 166;
+    --glow-deep-rgb: 75, 60, 131;
+    --glow-alpha-strong: 0.35;
+    --glow-alpha-soft: 0.22;
+    --shadow-neutral-rgb: 0, 0, 0;
+    --shadow-neutral-alpha: 0.18;
+    --panel-border: rgba(106, 90, 166, 0.22);
+    --panel-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.70);
+    --panel-radius: 16px;
+    /* ✅ watermark controls */
+    --wm-opacity: 0.10; /* adjust 0.05–0.18 */
+    --wm-max: 900px; /* adjust size */
+}
+
+.appShell {
+    position: relative;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Background image layer (from App.jsx inline) */
+.appBackground {
+    position: fixed;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 0;
+    transform: scale(1.02);
+}
+
+/* Overlay */
+.appOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1;
+}
+
+/* Centered frame */
+.appFrame {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* White panel */
+.appContent {
+    width: min(1400px, calc(100vw - 20px));
+    height: calc(100vh - 20px);
+    box-sizing: border-box;
+    /* IMPORTANT: do NOT hide everything, we control scroll in appBody */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #f6f7fb;
+    border-radius: var(--panel-radius);
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 26px 70px rgba(var(--glow-deep-rgb), var(--glow-alpha-strong)), 0 12px 28px rgba(var(--glow-rgb), var(--glow-alpha-soft)), 0 18px 40px rgba(var(--shadow-neutral-rgb), var(--shadow-neutral-alpha)), var(--panel-inner-highlight);
+    position: relative; /* anchor watermark */
+}
+
+/* ✅ Watermark logo inside panel */
+.appWatermark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    max-width: min(var(--wm-max), 88%);
+    max-height: min(var(--wm-max), 88%);
+    width: auto;
+    height: auto;
+    opacity: var(--wm-opacity);
+    pointer-events: none;
+    user-select: none;
+    z-index: 0; /* behind content */
+}
+
+/* ✅ Routed content area scrolls, watermark stays put */
+.appBody {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+    /* Let route pages stretch */
+    .appBody > * {
+        flex: 1;
+        min-height: 0;
+    }
+
+/* Home-only glass effect (optional) */
+.appContent.homePanel {
+    background: rgba(246, 247, 251, 0.10);
+    backdrop-filter: blur(6px);
+}

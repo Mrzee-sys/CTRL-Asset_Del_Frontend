@@ -1,0 +1,227 @@
+:root {
+    --cr-bg: #f6f7fb;
+    --cr-card: #ffffff;
+    --cr-border: rgba(15, 23, 42, .10);
+    --cr-text: #0f172a;
+    --cr-muted: #475569;
+    --cr-purple: #6a5aa6;
+    --cr-purple-dark: #4b3c83;
+    --cr-shadow: 0 10px 26px rgba(0,0,0,.10);
+    --cr-radius: 14px;
+}
+
+.cr-page {
+    min-height: calc(100vh - 64px - 44px); /* if you keep global header/footer; safe */
+    background: var(--cr-bg);
+    padding: 18px;
+    width: 100%;
+}
+
+.cr-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cr-title {
+    margin: 0;
+    text-align: center;
+    font-size: 22px;
+    letter-spacing: .2px;
+    color: var(--cr-text);
+}
+
+.cr-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--cr-border);
+    background: var(--cr-card);
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.cr-headerRight {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.cr-iconBtn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--cr-border);
+    background: var(--cr-card);
+    cursor: pointer;
+}
+
+/* Toolbar */
+.cr-toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--cr-card);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    padding: 12px;
+    box-shadow: var(--cr-shadow);
+}
+
+.cr-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(90deg, var(--cr-purple-dark), var(--cr-purple));
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.cr-search {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.cr-searchInput {
+    width: min(420px, 100%);
+    border: 1px solid var(--cr-border);
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    outline: none;
+}
+
+.cr-searchBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--cr-border);
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.cr-ghost {
+    border: 1px solid var(--cr-border);
+    background: transparent;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+}
+
+/* Status line */
+.cr-statusRow {
+    margin: 10px 2px 10px;
+}
+
+.cr-muted {
+    color: var(--cr-muted);
+}
+
+.cr-error {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+/* Table */
+.cr-tableWrap {
+    margin-top: 8px;
+    background: var(--cr-card);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    box-shadow: var(--cr-shadow);
+    overflow: auto;
+}
+
+.cr-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 1100px; /* encourages horizontal scroll like your screenshot */
+}
+
+    .cr-table thead th {
+        position: sticky;
+        top: 0;
+        background: #f1f5f9;
+        color: #0f172a;
+        text-align: left;
+        font-size: 12.5px;
+        letter-spacing: .25px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--cr-border);
+        white-space: nowrap;
+    }
+
+    .cr-table tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(15, 23, 42, .06);
+        color: #0f172a;
+        white-space: nowrap;
+    }
+
+    .cr-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+.cr-openCell {
+    width: 96px;
+}
+
+.cr-openBtn {
+    width: 100%;
+    border: 1px solid rgba(15, 23, 42, .15);
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.cr-empty {
+    text-align: center;
+    padding: 22px !important;
+    color: var(--cr-muted);
+}
+
+/* Pills for status */
+.cr-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1px solid rgba(15, 23, 42, .12);
+}
+
+.cr-pill--good {
+    background: rgba(34,197,94,.12);
+    border-color: rgba(34,197,94,.25);
+}
+
+.cr-pill--warn {
+    background: rgba(245,158,11,.12);
+    border-color: rgba(245,158,11,.25);
+}
+
+.cr-pill--bad {
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.25);
+}
+
+.cr-pill--neutral {
+    background: rgba(148,163,184,.14);
+    border-color: rgba(148,163,184,.26);
+}
