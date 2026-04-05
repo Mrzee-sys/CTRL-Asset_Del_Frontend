@@ -1,4 +1,19 @@
-﻿:root {
+﻿/* =========================================================
+   DETAIL PAGE LAYOUT — SINGLE SOURCE OF TRUTH
+   Used by:
+   - ComputerCard
+   - PeporgCard
+   - PeopleCard (future)
+   - OrganisationCard (future)
+
+   ⚠️ Do NOT duplicate this file
+   ⚠️ Do NOT override layout per module
+   ========================================================= */
+
+/* =========================================================
+   THEME VARIABLES
+   ========================================================= */
+:root {
     --bg: #f6f7fb;
     --panel: #ffffff;
     --text: #0f172a;
@@ -6,8 +21,7 @@
     --border: #e5e7eb;
     --shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
     --radius: 14px;
-    /* ✅ Purple theme (matches your Add Asset screenshot) */
-    --primary: #5b4bd6; /* change this if your purple differs */
+    --primary: #5b4bd6;
     --primaryHover: #4f40c9;
     --primarySoft: rgba(91, 75, 214, 0.12);
     --danger: #dc2626;
@@ -26,7 +40,7 @@
 }
 
 /* =========================================================
-   PAGE LAYOUT
+   PAGE SHELL
    ========================================================= */
 .assetPage {
     height: 100vh;
@@ -35,7 +49,6 @@
     color: var(--text);
 }
 
-/* ✅ Wider content area */
 .assetShell {
     max-width: 1600px;
     width: 100%;
@@ -43,14 +56,12 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    /* slightly tighter to reduce vertical scroll */
     padding: 18px 22px 14px;
     box-sizing: border-box;
 }
 
 /* =========================================================
-   ✅ BUTTON SYSTEM (LOCAL)
-   - ensures Save/Cancel/Add/Back all match theme on this page
+   BUTTON SYSTEM (GLOBAL FOR DETAIL PAGES)
    ========================================================= */
 .assetPage .btn {
     appearance: none;
@@ -78,11 +89,9 @@
         transform: none;
     }
 
-/* ✅ Primary purple (used by Save/Cancel/Add) */
 .assetPage .btnPrimary {
     background: var(--primary);
     color: #ffffff;
-    border-color: rgba(255,255,255,0.10);
     box-shadow: 0 10px 20px rgba(91, 75, 214, 0.18);
 }
 
@@ -90,12 +99,10 @@
         background: var(--primaryHover);
     }
 
-/* Ghost / Back button: still themed */
 .assetPage .btnGhost {
     background: #ffffff;
     color: var(--text);
     border-color: var(--border);
-    box-shadow: none;
 }
 
     .assetPage .btnGhost:hover {
@@ -103,20 +110,8 @@
         box-shadow: 0 0 0 3px var(--primarySoft);
     }
 
-/* DangerOutline: keep same theme per your requirement (purple), not red */
-.assetPage .btnDangerOutline {
-    background: var(--primary);
-    color: #ffffff;
-    border-color: rgba(255,255,255,0.10);
-    box-shadow: 0 10px 20px rgba(91, 75, 214, 0.18);
-}
-
-    .assetPage .btnDangerOutline:hover {
-        background: var(--primaryHover);
-    }
-
 /* =========================================================
-   ✅ COMPACT HEADER (reduce vertical space)
+   HEADER (LOCKED TEMPLATE)
    ========================================================= */
 .assetHeader {
     display: grid;
@@ -136,7 +131,6 @@
     align-items: center;
 }
 
-
 .assetHeader__main {
     position: absolute;
     left: 50%;
@@ -144,62 +138,20 @@
     transform: translate(-50%, -50%);
     display: flex;
     justify-content: center;
-    pointer-events: none; /* ✅ lets clicks pass through */
+    pointer-events: none;
 }
-
-
-
-/* smaller logos */
-
-.headerLogos {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-
-.logoBox {
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    background: #ffffff;
-    display: grid;
-    place-items: center;
-    box-shadow: 0 8px 14px rgba(2, 6, 23, 0.06);
-}
-
-
-.logoBox--big {
-    width: 70px;
-    height: 70px;
-    border-radius: 14px;
-}
-
-
-
-.logoImg {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
-}
-
-
-
 
 .assetHeader__titleBlock {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    max-width: 640px; /* prevents over-wide titles */
+    max-width: 640px;
 }
 
-
-
-/* smaller title */
 .assetHeader__title {
     font-size: 24px;
     line-height: 1.15;
-    margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -207,38 +159,26 @@
 
 .assetHeader__meta {
     display: flex;
-    align-items: center;
     gap: 8px;
     margin-top: 4px;
-    color: var(--muted);
     font-size: 12px;
+    color: var(--muted);
 }
 
 .metaDot {
     opacity: 0.7;
 }
 
-/* actions: in a row to reduce height */
-.assetHeader__actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-end;
-}
 /* =========================================================
-   HEADER RIGHT SIDE (Audit + Logos)
+   HEADER RIGHT — AUDIT + ICONS
    ========================================================= */
-
 .assetHeader__right {
     display: flex;
     align-items: center;
     gap: 12px;
     justify-content: flex-end;
-    flex-wrap: nowrap; /* ✅ KEY FIX */
+    flex-wrap: nowrap;
 }
-
-
-/* Audit mini-card */
 
 .auditMeta {
     display: grid;
@@ -247,10 +187,8 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     background: rgba(91, 75, 214, 0.04);
-    min-width: 0; /* ✅ allow shrink */
-    max-width: 260px; /* ✅ keep sane limit */
+    max-width: 260px;
 }
-
 
 .auditRow {
     display: flex;
@@ -269,15 +207,39 @@
     font-weight: 800;
     color: var(--text);
 }
+
+.headerLogos {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logoBox {
+    width: 70px;
+    height: 70px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 8px 14px rgba(2, 6, 23, 0.06);
+}
+
+.logoImg {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
 /* =========================================================
-   BODY LAYOUT
+   BODY GRID
    ========================================================= */
 .assetGrid {
-    margin-top: 12px; /* tighter */
+    margin-top: 12px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
     gap: 14px;
-    flex: 1 1 auto;
+    flex: 1;
     min-height: 0;
 }
 
@@ -287,16 +249,15 @@
     }
 
 /* =========================================================
-   PANELS (tighter to reduce scroll)
+   PANELS
    ========================================================= */
 .panel {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    padding: 14px; /* was 18 */
+    padding: 14px;
     box-sizing: border-box;
-    min-height: 0;
 }
 
 .panel__title {
@@ -306,7 +267,7 @@
 }
 
 /* =========================================================
-   FIELDS (tighter)
+   FIELDS
    ========================================================= */
 .fieldGrid {
     display: grid;
@@ -314,18 +275,11 @@
     gap: 10px 14px;
 }
 
-@media (max-width: 640px) {
-    .fieldGrid {
-        grid-template-columns: 1fr;
-    }
-}
-
 .field {
     padding: 14px;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: rgba(91, 75, 214, 0.03);
-    box-shadow: 0 14px 28px rgba(91, 75, 214, 0.14);
 }
 
 .fieldFull {
@@ -339,73 +293,13 @@
     margin-bottom: 6px;
 }
 
-
 .value {
     font-size: 15px;
     font-weight: 650;
-    color: var(--text);
     width: 100%;
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 12px 12px;
-    background: #ffffff;
-    min-height: 44px;
-}
-
-
-input.value,
-select.value,
-textarea.value {
-    outline: none;
-}
-
-    input.value:focus,
-    select.value:focus,
-    textarea.value:focus {
-        border-color: rgba(91, 75, 214, 0.55);
-        box-shadow: 0 0 0 3px var(--primarySoft);
-    }
-
-/* =========================================================
-   PILLS
-   ========================================================= */
-.pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 5px 9px;
-    border-radius: 999px;
-    font-weight: 900;
-    font-size: 11px;
-}
-
-.pillLive {
-    background: var(--liveBg);
-    color: var(--liveText);
-}
-
-.pillStore {
-    background: var(--storeBg);
-    color: var(--storeText);
-}
-
-.pillRepair {
-    background: rgba(91, 75, 214, 0.14);
-    color: var(--primary);
-}
-
-.pillRetired {
-    background: var(--retiredBg);
-    color: var(--retiredText);
-}
-
-.pillDisposed {
-    background: var(--disposedBg);
-    color: var(--disposedText);
-}
-
-.pillOther {
-    background: var(--otherBg);
-    color: var(--otherText);
+    padding: 12px;
 }
 
 /* =========================================================
@@ -421,7 +315,6 @@ textarea.value {
     border-radius: 12px;
     padding: 10px;
     background: rgba(91, 75, 214, 0.045);
-    box-shadow: 0 12px 28px rgba(91, 75, 214, 0.14);
 }
 
 .sideBlock__title {
@@ -437,62 +330,7 @@ textarea.value {
 }
 
 /* =========================================================
-   QR
-   ========================================================= */
-.qrBox {
-    display: grid;
-    place-items: center;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px dashed var(--border);
-    min-height: 180px;
-}
-
-.qrImg {
-    width: 130px;
-    height: 130px;
-    object-fit: contain;
-}
-
-.qrPlaceholder {
-    width: 110px;
-    height: 110px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    display: grid;
-    place-items: center;
-    font-size: 11px;
-    font-weight: 900;
-}
-
-.qrValue {
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--muted);
-    text-align: center;
-}
-
-.sideBlock.qrReady {
-    border-color: rgba(34, 197, 94, 0.65);
-    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.14);
-}
-
-.qrPrintLink {
-    appearance: none;
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    color: var(--primary);
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-    .qrPrintLink:hover {
-        color: var(--primaryHover);
-    }
-/* =========================================================
-   ✅ ACTION BLOCK (Save / Cancel)
+   ACTION BLOCK
    ========================================================= */
 .actionBlock {
     margin-top: 12px;
@@ -500,16 +338,6 @@ textarea.value {
     border: 1px solid var(--border);
     border-radius: 12px;
     background: rgba(91, 75, 214, 0.06);
-    box-shadow: 0 12px 28px rgba(91, 75, 214, 0.14);
-}
-
-.actionBlock__title {
-    font-weight: 900;
-    font-size: 11px;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    color: var(--muted);
-    letter-spacing: 0.4px;
 }
 
 .actionBlock__buttons {
@@ -520,20 +348,11 @@ textarea.value {
     .actionBlock__buttons .btn {
         width: 100%;
     }
+
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 @media (max-width: 920px) {
-    .assetHeader {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: start;
-    }
-
-    .assetHeader__actions {
-        justify-content: flex-start;
-        flex-wrap: wrap;
-    }
-
     .assetPage {
         height: auto;
         overflow: auto;
@@ -543,11 +362,9 @@ textarea.value {
         height: auto;
         display: block;
         padding: 18px 16px 28px;
-        max-width: 100%;
     }
 
     .assetGrid {
         grid-template-columns: 1fr;
     }
 }
-

@@ -2,6 +2,8 @@
 import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiPlus, FiSearch, FiRefreshCw, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { fetchComputers } from "./computerApi";
+import "../../styles/DetailPageLayout.css";
+import "../../styles/Register.css";
 import "./computerRegister.css";
 import "./ComputerCard.css";
 

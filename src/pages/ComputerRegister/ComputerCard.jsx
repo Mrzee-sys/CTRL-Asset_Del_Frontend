@@ -11,14 +11,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
-
 import { fetchComputerById, createComputer } from "./computerApi";
 import { getMakeLogo } from "../../utils/makeLogos";
 import { getOSLogo } from "../../utils/osLogos";
 import { getModelsForMake, addModelForMake } from "../../utils/modelCatalog";
 import { getMakes, addMake, normalizeMake } from "../../utils/makeCatalog";
 import { getWarrantySite } from "../../utils/warrantySites";
-
+import "../../styles/DetailPageLayout.css";
 import "./ComputerCard.css";
 
 // =====================================================
@@ -42,7 +41,7 @@ const EMPTY_FORM = {
     company: "",
     farNumber: "",
     qrCodeValue: "",
-    notes: ""
+
 };
 
 // NOTE: Decide what “all fields” means for QR readiness.
@@ -273,7 +272,6 @@ export default function ComputerCard() {
     // -----------------------------
     const [qrImage, setQrImage] = useState("");
     const [qrGenerating, setQrGenerating] = useState(false);
-
     // -----------------------------
     // Formatting helpers
     // -----------------------------
@@ -284,16 +282,30 @@ export default function ComputerCard() {
             if (Number.isNaN(dt.getTime())) return "—";
             return dt.toLocaleDateString();
         };
+
+        const dateTime = (d) => {
+            if (!d) return "—";
+            const dt = new Date(d);
+            if (Number.isNaN(dt.getTime())) return "—";
+            return dt.toLocaleString();
+        };
+
         const money = (n) => {
             if (n === null || n === undefined || n === "") return "—";
             const num = Number(n);
             if (Number.isNaN(num)) return "—";
-            return num.toLocaleString(undefined, { style: "currency", currency: "ZAR" });
+            return num.toLocaleString(undefined, {
+                style: "currency",
+                currency: "ZAR"
+            });
         };
-        const text = (v) => (v === null || v === undefined || v === "" ? "—" : String(v));
-        return { date, money, text };
-    }, []);
 
+        const text = (v) =>
+            v === null || v === undefined || v === "" ? "—" : String(v);
+
+        return { date, dateTime, money, text };
+    }, []);
+    
     // -----------------------------
     // Status pill class helper
     // -----------------------------
@@ -313,6 +325,9 @@ export default function ComputerCard() {
     };
 
     const statusClass = statusClassFor(isCreate ? form.status : computer?.status);
+
+    // Audit: create-mode draft timestamp (for header)
+    const [draftStarted] = useState(() => new Date().toISOString());
 
     // -----------------------------
     // Form helper
@@ -517,6 +532,21 @@ export default function ComputerCard() {
     // QR GEN PLAN: Ready gate + Generate button + QR image
     // =====================================================
     const current = isCreate ? form : computer || {};
+    // Try common timestamp field names from different backends
+    const createdAt =
+        current?.createdAt ||
+        current?.created_at ||
+        current?.createdDate ||
+        current?.createdOn ||
+        "";
+
+    const updatedAt =
+        current?.updatedAt ||
+        current?.updated_at ||
+        current?.lastUpdated ||
+        current?.lastEdit ||
+        current?.modifiedOn ||
+        "";
     const qrReady = isQrReady(current);
     const desiredQrValue = qrReady ? buildQrPayload(current) : "";
     const qrValue = current?.qrCodeValue || "";
@@ -610,7 +640,6 @@ export default function ComputerCard() {
                 company: String(form.company || "").trim(),
                 farNumber: String(form.farNumber || "").trim(),
                 qrCodeValue: String(form.qrCodeValue || "").trim(),
-                notes: String(form.notes || "").trim(),
                 type: String(form.type || "").trim(),
                 openId: form.openId === "" ? undefined : form.openId,
                 purchaseAmount: form.purchaseAmount === "" ? undefined : Number(form.purchaseAmount),
@@ -685,24 +714,8 @@ export default function ComputerCard() {
                         </div>
 
                         <div className="assetHeader__main">
-                            <div className="headerLogos">
-                                <div className="logoBox logoBox--big" title={form.make || "Unknown Make"}>
-                                    <img className="logoImg" src={getMakeLogo(form.make)} alt="Make logo" />
-                                </div>
-                                <div className="logoBox logoBox--big" title={form.os || "Unknown OS"}>
-                                    <img className="logoImg" src={getOSLogo(form.os)} alt="OS logo" />
-                                </div>
-                            </div>
-
                             <div className="assetHeader__titleBlock">
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 10,
-                                        minWidth: 0
-                                    }}
-                                >
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                                     <h1
                                         className="assetHeader__title"
                                         title={form.computerName || "New Asset"}
@@ -721,8 +734,29 @@ export default function ComputerCard() {
                             </div>
                         </div>
 
-                        {/* Actions moved to QR block */}
-                        <div className="assetHeader__actions" />
+                        {/* Right side: Audit + Logos */}
+                        <div className="assetHeader__right">
+                            <div className="auditMeta">
+                                <div className="auditRow">
+                                    <span className="auditLabel">Draft started</span>
+                                    <span className="auditValue">{fmt.dateTime(draftStarted)}</span>
+                                </div>
+                                <div className="auditRow">
+                                    <span className="auditLabel">Last saved</span>
+                                    <span className="auditValue">—</span>
+                                </div>
+                            </div>
+
+                            <div className="headerLogos">
+                                <div className="logoBox logoBox--big" title={form.make || "Unknown Make"}>
+                                    <img className="logoImg" src={getMakeLogo(form.make)} alt="Make logo" />
+                                </div>
+
+                                <div className="logoBox logoBox--big" title={form.os || "Unknown OS"}>
+                                    <img className="logoImg" src={getOSLogo(form.os)} alt="OS logo" />
+                                </div>
+                            </div>
+                        </div>
                     </header>
 
                     {/* ===== BODY (Create) ===== */}
@@ -730,7 +764,9 @@ export default function ComputerCard() {
                         {/* ===== LEFT PANEL: DETAILS FORM ===== */}
                         <section className="panel">
                             <div className="panel__title">Details</div>
-                            {err ? <div style={{ color: "#b42318", marginBottom: 10 }}>{err}</div> : null}
+                            {err ? (
+                                <div style={{ color: "#b42318", marginBottom: 10 }}>{err}</div>
+                            ) : null}
 
                             <div className="fieldGrid">
                                 <div className="field">
@@ -744,7 +780,11 @@ export default function ComputerCard() {
 
                                 <div className="field">
                                     <div className="label">Status</div>
-                                    <select className="value" value={form.status} onChange={(e) => setField("status", e.target.value)}>
+                                    <select
+                                        className="value"
+                                        value={form.status}
+                                        onChange={(e) => setField("status", e.target.value)}
+                                    >
                                         <option value="Live">Live</option>
                                         <option value="In Store">In Store</option>
                                         <option value="Repair">Repair</option>
@@ -756,7 +796,11 @@ export default function ComputerCard() {
 
                                 <div className="field">
                                     <div className="label">Owner</div>
-                                    <input className="value" value={form.owner} onChange={(e) => setField("owner", e.target.value)} />
+                                    <input
+                                        className="value"
+                                        value={form.owner}
+                                        onChange={(e) => setField("owner", e.target.value)}
+                                    />
                                 </div>
 
                                 <div className="field">
@@ -770,7 +814,11 @@ export default function ComputerCard() {
 
                                 <div className="field">
                                     <div className="label">Type</div>
-                                    <select className="value" value={form.type} onChange={(e) => setField("type", e.target.value)}>
+                                    <select
+                                        className="value"
+                                        value={form.type}
+                                        onChange={(e) => setField("type", e.target.value)}
+                                    >
                                         <option value="">— Select —</option>
                                         <option value="Laptop">Laptop</option>
                                         <option value="Desktop">Desktop</option>
@@ -801,7 +849,12 @@ export default function ComputerCard() {
                                             list="makeOptionsList"
                                             style={{ flex: 1 }}
                                         />
-                                        <button type="button" className="btn btnPrimary" onClick={onAddMakeToList} style={{ whiteSpace: "nowrap" }}>
+                                        <button
+                                            type="button"
+                                            className="btn btnPrimary"
+                                            onClick={onAddMakeToList}
+                                            style={{ whiteSpace: "nowrap" }}
+                                        >
                                             Add
                                         </button>
                                     </div>
@@ -812,7 +865,11 @@ export default function ComputerCard() {
                                         ))}
                                     </datalist>
 
-                                    {makeMsg ? <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>{makeMsg}</div> : null}
+                                    {makeMsg ? (
+                                        <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
+                                            {makeMsg}
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 <div className="field">
@@ -829,7 +886,12 @@ export default function ComputerCard() {
                                             list="modelOptions"
                                             style={{ flex: 1 }}
                                         />
-                                        <button type="button" className="btn btnPrimary" onClick={onAddModelToList} style={{ whiteSpace: "nowrap" }}>
+                                        <button
+                                            type="button"
+                                            className="btn btnPrimary"
+                                            onClick={onAddModelToList}
+                                            style={{ whiteSpace: "nowrap" }}
+                                        >
                                             Add
                                         </button>
                                     </div>
@@ -840,19 +902,31 @@ export default function ComputerCard() {
                                         ))}
                                     </datalist>
 
-                                    {modelMsg ? <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>{modelMsg}</div> : null}
+                                    {modelMsg ? (
+                                        <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
+                                            {modelMsg}
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 <div className="field">
                                     <div className="label">FAR Number</div>
-                                    <input className="value" value={form.farNumber} onChange={(e) => setField("farNumber", e.target.value)} />
+                                    <input
+                                        className="value"
+                                        value={form.farNumber}
+                                        onChange={(e) => setField("farNumber", e.target.value)}
+                                    />
                                 </div>
 
                                 <div className="field">
                                     <div className="label">
                                         Operating System
                                         <span style={{ marginLeft: 8, color: "#64748b", fontSize: 12 }}>
-                                            {osLoading ? "Loading versions..." : osErr ? "Versions unavailable" : `Source: ${osProduct}`}
+                                            {osLoading
+                                                ? "Loading versions..."
+                                                : osErr
+                                                    ? "Versions unavailable"
+                                                    : `Source: ${osProduct}`}
                                         </span>
                                     </div>
                                     <input
@@ -872,27 +946,49 @@ export default function ComputerCard() {
                                             <option key={o} value={o} />
                                         ))}
                                     </datalist>
-                                    {osErr ? <div style={{ marginTop: 6, color: "#b42318", fontSize: 12 }}>{osErr}</div> : null}
+                                    {osErr ? (
+                                        <div style={{ marginTop: 6, color: "#b42318", fontSize: 12 }}>
+                                            {osErr}
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 <div className="field">
                                     <div className="label">Company</div>
-                                    <input className="value" value={form.company} onChange={(e) => setField("company", e.target.value)} />
+                                    <input
+                                        className="value"
+                                        value={form.company}
+                                        onChange={(e) => setField("company", e.target.value)}
+                                    />
                                 </div>
 
                                 <div className="field">
                                     <div className="label">Location</div>
-                                    <input className="value" value={form.location} onChange={(e) => setField("location", e.target.value)} />
+                                    <input
+                                        className="value"
+                                        value={form.location}
+                                        onChange={(e) => setField("location", e.target.value)}
+                                    />
                                 </div>
 
                                 <div className="field">
                                     <div className="label">Date Purchased</div>
-                                    <input className="value" type="date" value={form.datePurchased} onChange={(e) => setField("datePurchased", e.target.value)} />
+                                    <input
+                                        className="value"
+                                        type="date"
+                                        value={form.datePurchased}
+                                        onChange={(e) => setField("datePurchased", e.target.value)}
+                                    />
                                 </div>
 
                                 <div className="field">
                                     <div className="label">Warranty Date</div>
-                                    <input className="value" type="date" value={form.warrantyDate} onChange={(e) => setField("warrantyDate", e.target.value)} />
+                                    <input
+                                        className="value"
+                                        type="date"
+                                        value={form.warrantyDate}
+                                        onChange={(e) => setField("warrantyDate", e.target.value)}
+                                    />
                                 </div>
 
                                 <div className="field">
@@ -905,115 +1001,97 @@ export default function ComputerCard() {
                                         onChange={(e) => setField("purchaseAmount", e.target.value)}
                                     />
                                 </div>
-
-                                <div className="field fieldFull">
-                                    <div className="label">Notes</div>
-                                    <textarea className="value" value={form.notes} onChange={(e) => setField("notes", e.target.value)} rows={4} />
-                                </div>
                             </div>
                         </section>
+                   
 
-                        {/* ===== RIGHT PANEL: BLOCKS ===== */}
-                        <aside className="panel panelSticky">
-                            <div className="panel__title">Quick Summary</div>
+                {/* ===== RIGHT PANEL: BLOCKS ===== */}
+                <aside className="panel panelSticky">
+                    <div className="panel__title">Quick Summary</div>
 
-                            <div className="sideBlocks">
-                                <div className="sideBlock">
-                                    <div className="sideBlock__title">Quick Summary</div>
-                                    <div className="summary">
-                                        <div className="summaryRow">
-                                            <div className="summaryLabel">Status</div>
-                                            <div className="summaryValue">
-                                                <span className={`pill ${statusClass}`}>{form.status || "—"}</span>
-                                            </div>
-                                        </div>
-                                        <div className="summaryRow">
-                                            <div className="summaryLabel">Make</div>
-                                            <div className="summaryValue">{form.make || "—"}</div>
-                                        </div>
-                                        <div className="summaryRow">
-                                            <div className="summaryLabel">Model</div>
-                                            <div className="summaryValue">{form.model || "—"}</div>
-                                        </div>
-                                        <div className="summaryRow">
-                                            <div className="summaryLabel">Owner</div>
-                                            <div className="summaryValue">{form.owner || "—"}</div>
-                                        </div>
+                    <div className="sideBlocks">
+                        <div className="sideBlock">
+                            <div className="sideBlock__title">Quick Summary</div>
+                            <div className="summary">
+                                <div className="summaryRow">
+                                    <div className="summaryLabel">Status</div>
+                                    <div className="summaryValue">
+                                        <span className={`pill ${statusClass}`}>{form.status || "—"}</span>
                                     </div>
                                 </div>
-
-                                <div className="sideBlock">
-                                    <div className="sideBlock__title">Warranty Site</div>
-                                    {warrantySite ? (
-                                        <a className="warrantyLink" href={warrantySite.url} target="_blank" rel="noreferrer">
-                                            {warrantySite.label}
-                                        </a>
-                                    ) : (
-                                        <div className="sideBlock__text">
-                                            No warranty site configured for <b>{current?.make || "this make"}</b>.
-                                        </div>
-                                    )}
+                                <div className="summaryRow">
+                                    <div className="summaryLabel">Make</div>
+                                    <div className="summaryValue">{form.make || "—"}</div>
                                 </div>
-
-                                <div className="sideBlock">
-                                    <div className="sideBlock__title">Applications Assigned</div>
-                                    {appsAssigned.length === 0 ? (
-                                        <div className="sideBlock__text">No applications assigned yet.</div>
-                                    ) : (
-                                        <div className="appsList">
-                                            {appsAssigned.map((app) => (
-                                                <div className="appPill" key={app}>
-                                                    <span>{app}</span>
-                                                    <span className="appPill__meta">Assigned</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                <div className="summaryRow">
+                                    <div className="summaryLabel">Model</div>
+                                    <div className="summaryValue">{form.model || "—"}</div>
                                 </div>
-
-                                {/* --- Block: QR Code (QR Gen Plan) --- */}
-                                <div className={`sideBlock ${qrReady ? "qrReady" : ""}`}>
-                                    <div className="sideBlock__title">QR Code</div>
-
-                                    <div className="qrBox">
-                                        {qrImage ? <img className="qrImg" src={qrImage} alt="Asset QR Code" /> : <div className="qrPlaceholder">QR</div>}
-                                        <div className="qrValue">
-                                            {qrImage ? (qrStale ? "QR needs regenerate" : "QR code generated") : qrValue ? qrValue : "No QR value yet"}
-                                        </div>
-                                    </div>
-
-                                    {qrReady ? (
-                                        <button
-                                            className="btn btnPrimary"
-                                            style={{ marginTop: 10, width: "100%" }}
-                                            onClick={onGenerateQr}
-                                            disabled={qrGenerating}
-                                            title={qrStale ? "Fields changed — regenerate QR" : "Generate QR"}
-                                        >
-                                            {qrGenerating ? "Generating..." : qrImage ? "Regenerate QR Code" : "Generate QR Code"}
-                                        </button>
-                                    ) : (
-                                        <div className="sideBlock__text" style={{ marginTop: 8 }}>
-                                            Complete all required fields to enable QR generation.
-                                        </div>
-                                    )}
-
-                                    {/* ✅ Save/Cancel moved here (under QR) */}
-                                    <div className="qrActions">
-                                        <button className="btn btnPrimary" type="button" onClick={onSaveNew} disabled={saving}>
-                                            {saving ? "Saving..." : "Save"}
-                                        </button>
-
-                                        <button className="btn btnPrimary" type="button" onClick={() => navigate("/computers")} disabled={saving}>
-                                            Cancel
-                                        </button>
-                                    </div>
+                                <div className="summaryRow">
+                                    <div className="summaryLabel">Owner</div>
+                                    <div className="summaryValue">{form.owner || "—"}</div>
                                 </div>
                             </div>
-                        </aside>
-                    </main>
-                </div>
-            </div>
+                        </div>
+
+                        <div className="sideBlock">
+                            <div className="sideBlock__title">Warranty Site</div>
+                            {warrantySite ? (
+                                <a className="warrantyLink" href={warrantySite.url} target="_blank" rel="noreferrer">
+                                    {warrantySite.label}
+                                </a>
+                            ) : (
+                                <div className="sideBlock__text">
+                                    No warranty site configured for <b>{current?.make || "this make"}</b>.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="sideBlock">
+                            <div className="sideBlock__title">Applications Assigned</div>
+                            {appsAssigned.length === 0 ? (
+                                <div className="sideBlock__text">No applications assigned yet.</div>
+                            ) : (
+                                <div className="appsList">
+                                    {appsAssigned.map((app) => (
+                                        <div className="appPill" key={app}>
+                                            <span>{app}</span>
+                                            <span className="appPill__meta">Assigned</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+
+                        {/* ✅ Save/Cancel block */}
+                        <div className="actionBlock">
+
+                            <div className="actionBlock__buttons">
+                                <button
+                                    className="btn btnPrimary"
+                                    type="button"
+                                    onClick={onSaveNew}
+                                    disabled={saving}
+                                >
+                                    {saving ? "Saving..." : "Save"}
+                                </button>
+
+                                <button
+                                    className="btn btnPrimary"
+                                    type="button"
+                                    onClick={() => navigate("/computers")}
+                                    disabled={saving}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </main>
+                </div >
+            </div >
         );
     }
 
@@ -1034,15 +1112,6 @@ export default function ComputerCard() {
                     </div>
 
                     <div className="assetHeader__main">
-                        <div className="headerLogos">
-                            <div className="logoBox logoBox--big" title={computer?.make || "Unknown Make"}>
-                                <img className="logoImg" src={getMakeLogo(computer?.make)} alt="Make logo" />
-                            </div>
-                            <div className="logoBox logoBox--big" title={computer?.os || "Unknown OS"}>
-                                <img className="logoImg" src={getOSLogo(computer?.os)} alt="OS logo" />
-                            </div>
-                        </div>
-
                         <div className="assetHeader__titleBlock">
                             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                                 <h1 className="assetHeader__title" title={computer?.computerName} style={{ margin: 0 }}>
@@ -1059,15 +1128,31 @@ export default function ComputerCard() {
                         </div>
                     </div>
 
-                    <div className="assetHeader__actions">
-                        <button className="btn btnPrimary" type="button" disabled>
-                            Edit
-                        </button>
-                        <button className="btn btnDangerOutline" type="button" disabled>
-                            Retire
-                        </button>
+                    {/* Right side: Audit + Logos */}
+                    <div className="assetHeader__right">
+                        <div className="auditMeta">
+                            <div className="auditRow">
+                                <span className="auditLabel">Created</span>
+                                <span className="auditValue">{fmt.dateTime(createdAt)}</span>
+                            </div>
+                            <div className="auditRow">
+                                <span className="auditLabel">Last updated</span>
+                                <span className="auditValue">{fmt.dateTime(updatedAt)}</span>
+                            </div>
+                        </div>
+
+                        <div className="headerLogos">
+                            <div className="logoBox logoBox--big" title={computer?.make || "Unknown Make"}>
+                                <img className="logoImg" src={getMakeLogo(computer?.make)} alt="Make logo" />
+                            </div>
+
+                            <div className="logoBox logoBox--big" title={computer?.os || "Unknown OS"}>
+                                <img className="logoImg" src={getOSLogo(computer?.os)} alt="OS logo" />
+                            </div>
+                        </div>
                     </div>
                 </header>
+                
 
                 {/* ===== BODY (View) ===== */}
                 <main className="assetGrid">
@@ -1150,11 +1235,6 @@ export default function ComputerCard() {
                             <div className="field">
                                 <div className="label">Purchase Amount</div>
                                 <div className="value">{fmt.money(computer?.purchaseAmount)}</div>
-                            </div>
-
-                            <div className="field fieldFull">
-                                <div className="label">Notes</div>
-                                <div className="value">{fmt.text(computer?.notes)}</div>
                             </div>
                         </div>
                     </section>

@@ -1,7 +1,6 @@
 ﻿:root {
     --purple: #6a5aa6;
     --purple-dark: #4b3c83;
-    /* Home background is transparent */
     --bg: transparent;
     --tile: #1f2937;
     --tile2: #111827;
@@ -10,14 +9,11 @@
     --shadow: 0 12px 28px rgba(0,0,0,.14);
     --shadowHover: 0 16px 36px rgba(0,0,0,.22);
     --radius: 14px;
-    /* Icon highlight colors */
-    --icon-hover: #22c55e; /* green */
-    --icon-active: #facc15; /* yellow */
-    /* ✅ BLUE background glow */
-    --icon-bg: rgba(106, 90, 166, .25); /* idle purple tint */
-    --icon-bg-hover: rgba(59, 130, 246, .22); /* blue tint on hover */
-    --icon-bg-active: rgba(59, 130, 246, .32); /* stronger blue on click */
-
+    --icon-hover: #22c55e;
+    --icon-active: #facc15;
+    --icon-bg: rgba(106, 90, 166, .25);
+    --icon-bg-hover: rgba(59, 130, 246, .22);
+    --icon-bg-active: rgba(59, 130, 246, .32);
     --icon-glow-blue: rgba(59, 130, 246, .55);
     --icon-glow-blue-soft: rgba(59, 130, 246, .28);
 }
@@ -33,6 +29,39 @@
     background: var(--bg);
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
+
+/* =====================================================
+   HOME LOGO WATERMARK (BOTTOM‑RIGHT, ON WHITE PANEL)
+   Home.jsx adds .homePanel to .appContent
+   ===================================================== */
+
+.homePanel .content__inner {
+    position: relative;
+}
+
+    /* ✅ Watermark */
+    .homePanel .content__inner::before {
+        content: "";
+        position: absolute;
+        /* bottom-right placement */
+        right: -100px;
+        bottom: -50px;
+        width: min(50vw, 420px);
+        height: min(50vw, 420px);
+        background-image: url("../../assets/logos/CTRLogo.png");
+        background-repeat: no-repeat;
+        background-position: bottom right;
+        background-size: contain;
+        opacity: 0.80; /* ✅ more visible */
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* ✅ Ensure all real content sits above watermark */
+    .homePanel .content__inner > * {
+        position: relative;
+        z-index: 1;
+    }
 
 /* Top bar */
 .topbar {
@@ -135,115 +164,27 @@
     color: var(--tileText);
     background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)), linear-gradient(135deg, var(--tile), var(--tile2));
     box-shadow: var(--shadow);
-    transition: transform .16s ease, box-shadow .16s ease, outline .16s ease;
+    transition: transform .16s ease, box-shadow .16s ease;
     outline: 1px solid rgba(255,255,255,.08);
 }
 
     .tile:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadowHover);
-        outline: 1px solid rgba(255,255,255,.16);
     }
 
     .tile:active {
-        transform: translateY(0px);
+        transform: translateY(0);
     }
 
-/* ✅ Icon block (no font fallback, pure SVG) */
+/* Icon */
 .tile__icon {
     width: 44px;
     height: 44px;
     border-radius: 12px;
     display: grid;
     place-items: center;
-    /* important: stop text fallback */
-    font-size: 0;
-    line-height: 0;
     background: var(--icon-bg);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
-    transition: background .16s ease, box-shadow .16s ease, transform .16s ease;
-}
-
-    /* harden SVG render */
-    .tile__icon svg {
-        width: 22px;
-        height: 22px;
-        display: block;
-        stroke-width: 2;
-        color: rgba(255, 255, 255, 0.92);
-        transition: color .12s ease, filter .12s ease;
-    }
-
-    /* kill injected pseudo-content (safety) */
-    .tile__icon::before,
-    .tile__icon::after {
-        content: none !important;
-    }
-
-/* ✅ Blue glow background when highlighted (hover/focus) */
-.tile:hover .tile__icon,
-.tile:focus-visible .tile__icon {
-    background: var(--icon-bg-hover);
-    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 0 16px var(--icon-glow-blue-soft), 0 0 28px var(--icon-glow-blue);
-    transform: translateY(-1px);
-}
-
-/* ✅ Stronger blue glow on click */
-.tile:active .tile__icon {
-    background: var(--icon-bg-active);
-    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 18px var(--icon-glow-blue), 0 0 34px rgba(59, 130, 246, 0.65);
-    transform: translateY(0px);
-}
-
-/* Green icon when highlighted */
-.tile:hover .tile__icon svg,
-.tile:focus-visible .tile__icon svg {
-    color: var(--icon-hover);
-    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.35));
-}
-
-/* Yellow icon when clicked */
-.tile:active .tile__icon svg {
-    color: var(--icon-active);
-    filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.35));
-}
-
-.tile:focus-visible {
-    outline: 2px solid rgba(34, 197, 94, 0.40);
-    outline-offset: 2px;
-}
-
-.tile__text {
-    flex: 1;
-    min-width: 0;
-}
-
-.tile__title {
-    font-weight: 800;
-    font-size: 15.5px;
-    letter-spacing: .2px;
-}
-
-.tile__subtitle {
-    margin-top: 2px;
-    font-size: 12.8px;
-    color: var(--tileSub);
-    opacity: .95;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.tile__chev {
-    font-size: 24px;
-    opacity: .65;
-    margin-left: 6px;
-}
-
-/* Reserved whitespace area */
-.homeBottomSpace {
-    height: 110px;
-    flex-shrink: 0;
 }
 
 /* Footer */

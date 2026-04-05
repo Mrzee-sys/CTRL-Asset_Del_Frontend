@@ -8,6 +8,7 @@ import {
     FiTv,
     FiFolder,
     FiBarChart2,
+    FiUsers,
     FiX,
 } from "react-icons/fi";
 
@@ -17,7 +18,7 @@ const modules = [
     {
         title: "Computer Register",
         subtitle: "Assets, assignments and lifecycle",
-        icon: FiCpu, // ✅ component reference (NOT <FiCpu />)
+        icon: FiCpu,
         path: "/computers",
     },
     {
@@ -55,6 +56,14 @@ const modules = [
         subtitle: "Dashboards, exports and insights",
         icon: FiBarChart2,
         path: "/reporting",
+    },
+
+    // ✅ NEW MODULE
+    {
+        title: "People & Organisations",
+        subtitle: "Organisations, contacts and user imports",
+        icon: FiUsers,
+        path: "/peporg",
     },
 ];
 
@@ -97,7 +106,7 @@ export default function Home() {
 
                     <section className="grid">
                         {modules.map((m) => {
-                            const Icon = m.icon; // ✅ pull component out
+                            const Icon = m.icon;
                             return (
                                 <button
                                     key={m.title}
@@ -106,7 +115,7 @@ export default function Home() {
                                     onClick={() => navigate(m.path)}
                                 >
                                     <div className="tile__icon" aria-hidden="true">
-                                        <Icon /> {/* ✅ renders <svg> ... </svg> */}
+                                        <Icon />
                                     </div>
 
                                     <div className="tile__text">
