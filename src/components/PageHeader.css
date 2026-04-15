@@ -1,0 +1,109 @@
+.cr-header-slim {
+    display: grid;
+    grid-template-columns: 120px 1fr auto; /* Fixed width for back button to help centering */
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    padding: 10px 20px; /* Reduced vertical padding for slim look */
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.cr-back-btn {
+    width: 80px;
+    height: 38px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-weight: 800;
+    color: #1e293b;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.cr-header-center {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.cr-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.cr-title-text {
+    font-size: 20px; /* Smaller font to match your screenshot */
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+}
+
+.cr-pill-green {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.cr-subtitle-text {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.cr-header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.cr-stats-display {
+    border: 1px solid #e2e8f0;
+    padding: 4px 12px;
+    border-radius: 10px;
+    min-width: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.cr-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    height: 16px;
+}
+
+.cr-stat-label { 
+    color: #71717a; 
+    font-weight: 600; 
+    font-size: 10px;
+    text-transform: capitalize;
+}
+
+.cr-stat-value { 
+    color: #0f172a; 
+    font-weight: 800; 
+    font-size: 12px;
+}
+
+.cr-icon-box {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 13px;
+    color: #0f172a;
+}

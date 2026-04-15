@@ -1,209 +1,209 @@
-/* =========================================================
-   REGISTER STYLES — SHARED TABLE / LIST PAGES
-   Requires:
-   - DetailPageLayout.css (for layout, buttons, colors)
+    /* =========================================================
+    REGISTER STYLES ï¿½ SHARED TABLE / LIST PAGES
+    Requires:
+    - DetailPageLayout.css (for layout, buttons, colors)
 
-   Used by:
-   - PeporgRegister
-   - ComputerRegister (future)
-   - PeopleRegister (future)
-   ========================================================= */
-
-/* =========================================================
-   REGISTER TOOLBAR (SEARCH + ACTIONS)
-   ========================================================= */
-.registerBar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.registerPrimary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.registerSearch {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    justify-content: flex-end;
-}
-
-.registerSearchInput {
-    width: min(420px, 100%);
-}
-
-/* =========================================================
-   STATUS / INFO ROW
-   ========================================================= */
-.registerStatusRow {
-    margin: 10px 2px;
-    font-size: 12px;
-    color: var(--muted);
-}
-
-.registerError {
-    color: #b91c1c;
-    font-weight: 800;
-}
-
-/* =========================================================
-   TABLE WRAPPER
-   ========================================================= */
-.registerTableWrap {
-    margin-top: 8px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: auto;
-}
-
-/* =========================================================
-   TABLE BASE
-   ========================================================= */
-.registerTable {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    min-width: 1100px; /* encourages horizontal scroll */
-    font-size: 13px;
-}
+    Used by:
+    - PeporgRegister
+    - ComputerRegister (future)
+    - PeopleRegister (future)
+    ========================================================= */
 
     /* =========================================================
-   TABLE HEADER
-   ========================================================= */
-    .registerTable thead th {
-        position: sticky;
-        top: 0;
-        background: rgba(91, 75, 214, 0.04);
-        color: var(--text);
-        text-align: left;
-        font-size: 12.5px;
-        font-weight: 900;
-        letter-spacing: 0.25px;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--border);
-        white-space: nowrap;
-        z-index: 1;
-    }
-
-    /* =========================================================
-   TABLE BODY
-   ========================================================= */
-    .registerTable tbody td {
-        padding: 10px 12px;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-        color: var(--text);
-        white-space: nowrap;
-    }
-
-    .registerTable tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .registerTable tbody tr:hover td {
-        background: rgba(91, 75, 214, 0.035);
-    }
-
-/* =========================================================
-   CLICKABLE ROWS
-   ========================================================= */
-.registerRow {
-    cursor: pointer;
-}
-
-.registerOpenCell {
-    width: 96px;
-}
-
-.registerOpenBtn {
-    width: 100%;
-    border: 1px solid rgba(15, 23, 42, 0.15);
-    background: #ffffff;
-    border-radius: 10px;
-    padding: 8px 10px;
-    cursor: pointer;
-    text-align: left;
-}
-
-/* =========================================================
-   EMPTY STATE
-   ========================================================= */
-.registerEmpty {
-    text-align: center;
-    padding: 22px !important;
-    color: var(--muted);
-    font-size: 13px;
-}
-
-/* =========================================================
-   TEXT HELPERS
-   ========================================================= */
-.registerStrong {
-    font-weight: 900;
-}
-
-.registerMuted {
-    color: var(--muted);
-}
-
-/* =========================================================
-   STATUS PILLS
-   ========================================================= */
-.registerPill {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-    border: 1px solid rgba(15, 23, 42, 0.12);
-}
-
-.registerPill--good {
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(34, 197, 94, 0.25);
-    color: #166534;
-}
-
-.registerPill--warn {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.25);
-    color: #92400e;
-}
-
-.registerPill--bad {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.25);
-    color: #991b1b;
-}
-
-.registerPill--neutral {
-    background: rgba(148, 163, 184, 0.14);
-    border-color: rgba(148, 163, 184, 0.26);
-    color: #334155;
-}
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-@media (max-width: 920px) {
+    REGISTER TOOLBAR (SEARCH + ACTIONS)
+    ========================================================= */
     .registerBar {
-        flex-direction: column;
-        align-items: stretch;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .registerPrimary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .registerSearch {
-        justify-content: stretch;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        justify-content: flex-end;
     }
 
-    .registerTableWrap {
-        overflow-x: auto;
+    .registerSearchInput {
+        width: min(420px, 100%);
     }
-}
+
+    /* =========================================================
+    STATUS / INFO ROW
+    ========================================================= */
+    .registerStatusRow {
+        margin: 10px 2px;
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .registerError {
+        color: #b91c1c;
+        font-weight: 800;
+    }
+
+    /* =========================================================
+    TABLE WRAPPER
+    ========================================================= */
+    .registerTableWrap {
+        margin-top: 8px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: auto;
+    }
+
+    /* =========================================================
+    TABLE BASE
+    ========================================================= */
+    .registerTable {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 1100px; /* encourages horizontal scroll */
+        font-size: 13px;
+    }
+
+        /* =========================================================
+    TABLE HEADER
+    ========================================================= */
+        .registerTable thead th {
+            position: sticky;
+            top: 0;
+            background: rgba(91, 75, 214, 0.04);
+            color: var(--text);
+            text-align: left;
+            font-size: 12.5px;
+            font-weight: 900;
+            letter-spacing: 0.25px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        /* =========================================================
+    TABLE BODY
+    ========================================================= */
+        .registerTable tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .registerTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .registerTable tbody tr:hover td {
+            background: rgba(91, 75, 214, 0.035);
+        }
+
+    /* =========================================================
+    CLICKABLE ROWS
+    ========================================================= */
+    .registerRow {
+        cursor: pointer;
+    }
+
+    .registerOpenCell {
+        width: 96px;
+    }
+
+    .registerOpenBtn {
+        width: 100%;
+        border: 1px solid rgba(15, 23, 42, 0.15);
+        background: #ffffff;
+        border-radius: 10px;
+        padding: 8px 10px;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    /* =========================================================
+    EMPTY STATE
+    ========================================================= */
+    .registerEmpty {
+        text-align: center;
+        padding: 22px !important;
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    /* =========================================================
+    TEXT HELPERS
+    ========================================================= */
+    .registerStrong {
+        font-weight: 900;
+    }
+
+    .registerMuted {
+        color: var(--muted);
+    }
+
+    /* =========================================================
+    STATUS PILLS
+    ========================================================= */
+    .registerPill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+    }
+
+    .registerPill--good {
+        background: rgba(34, 197, 94, 0.12);
+        border-color: rgba(34, 197, 94, 0.25);
+        color: #166534;
+    }
+
+    .registerPill--warn {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.25);
+        color: #92400e;
+    }
+
+    .registerPill--bad {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.25);
+        color: #991b1b;
+    }
+
+    .registerPill--neutral {
+        background: rgba(148, 163, 184, 0.14);
+        border-color: rgba(148, 163, 184, 0.26);
+        color: #334155;
+    }
+
+    /* =========================================================
+    RESPONSIVE
+    ========================================================= */
+    @media (max-width: 920px) {
+        .registerBar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .registerSearch {
+            justify-content: stretch;
+        }
+
+        .registerTableWrap {
+            overflow-x: auto;
+        }
+    }

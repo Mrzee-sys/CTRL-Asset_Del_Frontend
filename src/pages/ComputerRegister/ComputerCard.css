@@ -30,10 +30,22 @@
    ========================================================= */
 .assetPage {
     height: 100vh;
-    overflow: hidden;
-    background: radial-gradient(900px 450px at 15% 0%, rgba(91, 75, 214, 0.10), transparent 55%), radial-gradient(700px 350px at 100% 10%, rgba(34, 197, 94, 0.08), transparent 50%), var(--bg);
-    color: var(--text);
+.assetHeader {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    position: relative;
 }
+    overflow: hidden;
+         overflow: hidden;
+         background: radial-gradient(900px 450px at 15% 0%, rgba(91, 75, 214, 0.10), transparent 55%), radial-gradient(700px 350px at 100% 10%, rgba(34, 197, 94, 0.08), transparent 50%), var(--bg);
+         color: var(--text);
 
 /* ✅ Wider content area */
 .assetShell {

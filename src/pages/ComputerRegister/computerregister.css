@@ -17,46 +17,6 @@
     width: 100%;
 }
 
-.cr-header {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.cr-title {
-    margin: 0;
-    text-align: center;
-    font-size: 22px;
-    letter-spacing: .2px;
-    color: var(--cr-text);
-}
-
-.cr-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid var(--cr-border);
-    background: var(--cr-card);
-    padding: 10px 12px;
-    border-radius: 12px;
-    cursor: pointer;
-}
-
-.cr-headerRight {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.cr-iconBtn {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    border: 1px solid var(--cr-border);
-    background: var(--cr-card);
-    cursor: pointer;
-}
 
 /* Toolbar */
 .cr-toolbar {

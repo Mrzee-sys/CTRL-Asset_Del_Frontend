@@ -1,5 +1,6 @@
 ﻿import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageHeader from "../../components/PageHeader";
 
 // IMPORTANT:
 // - This is a TEMPLATE file for cloning.
@@ -20,73 +21,15 @@ export default function DetailPageTemplate() {
     const isCreate = true;
 
     const fmt = useMemo(() => {
-        const dateTime = (d) => {
-            if (!d) return "—";
-            const dt = new Date(d);
-            if (Number.isNaN(dt.getTime())) return "—";
-            return dt.toLocaleString();
-        };
-        const text = (v) =>
-            v === null || v === undefined || v === "" ? "—" : String(v);
-        return { dateTime, text };
-    }, []);
-
-    // Placeholder audit fields (View mode would use record timestamps)
-    const current = isCreate ? {} : record || {};
-    const createdAt = current?.createdAt || "";
-    const updatedAt = current?.updatedAt || "";
-
-    return (
-        <div className="assetPage">
-            <div className="assetShell">
-
-                {/* =====================================================
-           HEADER (TEMPLATE) — DO NOT REARRANGE
-           ===================================================== */}
-                <header className="assetHeader">
-                    <div className="assetHeader__nav">
-                        <button className="btn btnGhost" onClick={() => navigate(-1)}>
-                            ← Back
-                        </button>
-                    </div>
-
-                    {/* Center title area */}
-                    <div className="assetHeader__main">
-                        <div className="assetHeader__titleBlock">
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, justifyContent: "center" }}>
-                                <h1 className="assetHeader__title" style={{ margin: 0 }}>
-                                    Untitled Record
-                                </h1>
-                                <span className="pill pillLive">Active</span>
-                            </div>
-
-                            <div className="assetHeader__meta" style={{ marginTop: 4, justifyContent: "center" }}>
-                                <span className="metaText">New Module</span>
-                                <span className="metaDot">•</span>
-                                <span className="metaText">
-                                    {isCreate ? "Creating new record" : "Viewing record"}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right side: Audit + Logos/Icons */}
-                    <div className="assetHeader__right">
-                        <div className="auditMeta">
-                            {isCreate ? (
-                                <>
-                                    <div className="auditRow">
-                                        <span className="auditLabel">Draft started</span>
-                                        <span className="auditValue">{fmt.dateTime(draftStarted)}</span>
-                                    </div>
-                                    <div className="auditRow">
-                                        <span className="auditLabel">Last saved</span>
-                                        <span className="auditValue">—</span>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="auditRow">
+                    <PageHeader
+                        title={isCreate ? "Untitled Record" : (record?.computerName || "Computer Details")}
+                        subtitle={`New Module • ${isCreate ? "Creating new record" : "Viewing record"}`}
+                        pillText={isCreate ? "Active" : (record?.status || "Active")}
+                        totalCount={undefined}
+                        pageInfo={undefined}
+                        leftIconLabel="A"
+                        rightIconLabel="B"
+                    />
                                         <span className="auditLabel">Created</span>
                                         <span className="auditValue">{fmt.dateTime(createdAt)}</span>
                                     </div>

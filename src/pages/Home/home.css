@@ -7,198 +7,223 @@
     --tileText: #f9fafb;
     --tileSub: #cbd5e1;
     --shadow: 0 12px 28px rgba(0,0,0,.14);
-    --shadowHover: 0 16px 36px rgba(0,0,0,.22);
+    
+    /* ✅ Electric Blue Theme Variables */
+    --electric-blue: #00BFFF;
+    --electric-glow: rgba(0, 191, 255, 0.6);
+    --electric-pulse: rgba(0, 191, 255, 0.3);
+    
     --radius: 14px;
-    --icon-hover: #22c55e;
-    --icon-active: #facc15;
     --icon-bg: rgba(106, 90, 166, .25);
-    --icon-bg-hover: rgba(59, 130, 246, .22);
-    --icon-bg-active: rgba(59, 130, 246, .32);
-    --icon-glow-blue: rgba(59, 130, 246, .55);
-    --icon-glow-blue-soft: rgba(59, 130, 246, .28);
+    --icon-bg-hover: rgba(0, 191, 255, 0.15);
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 .shell {
     height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--bg);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* =====================================================
-   HOME LOGO WATERMARK (BOTTOM‑RIGHT, ON WHITE PANEL)
-   Home.jsx adds .homePanel to .appContent
-   ===================================================== */
-
-.homePanel .content__inner {
-    position: relative;
+/* ✅ Animation for the Orbital Beam */
+@keyframes rotateBeam {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
-    /* ✅ Watermark */
-    .homePanel .content__inner::before {
-        content: "";
-        position: absolute;
-        /* bottom-right placement */
-        right: -100px;
-        bottom: -50px;
-        width: min(50vw, 420px);
-        height: min(50vw, 420px);
-        background-image: url("../../assets/logos/CTRLogo.png");
-        background-repeat: no-repeat;
-        background-position: bottom right;
-        background-size: contain;
-        opacity: 0.80; /* ✅ more visible */
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    /* ✅ Ensure all real content sits above watermark */
-    .homePanel .content__inner > * {
-        position: relative;
-        z-index: 1;
-    }
+/* ✅ Electric Blue Pulse Animation (For the Glow) */
+@keyframes electricPulse {
+    0% { box-shadow: 0 0 0 0 var(--electric-pulse); }
+    70% { box-shadow: 0 0 0 15px rgba(0, 191, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 191, 255, 0); }
+}
 
 /* Top bar */
 .topbar {
-    position: relative;
     height: 56px;
     background: linear-gradient(90deg, var(--purple-dark), var(--purple));
     color: #fff;
     display: flex;
     align-items: center;
-    padding: 0 14px;
-    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    padding: 0 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .topbar__title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: .2px;
-    pointer-events: none;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 1px;
 }
 
-.topbar__iconBtn {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,.22);
-    background: rgba(255,255,255,.10);
-    color: #fff;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    transition: transform .15s ease, background .15s ease;
-}
-
-    .topbar__iconBtn:hover {
-        background: rgba(255,255,255,.18);
-        transform: translateY(-1px);
-    }
-
-/* Main area */
-.content {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    padding: 16px 18px 10px;
-}
-
-.content__inner {
-    width: min(1200px, 100%);
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-.headline {
-    margin: 2px 0 6px;
-    font-size: 24px;
-    letter-spacing: .2px;
-    color: #0f172a;
-}
-
-.subhead {
-    margin: 0 0 14px;
-    color: #334155;
-}
-
-/* Grid */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-}
-
-@media (min-width: 1120px) {
-    .grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 760px) {
-    .grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Tile */
-.tile {
-    border: none;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
+/* Status Dot */
+.status-indicator {
+    margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: var(--radius);
-    color: var(--tileText);
-    background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)), linear-gradient(135deg, var(--tile), var(--tile2));
-    box-shadow: var(--shadow);
-    transition: transform .16s ease, box-shadow .16s ease;
-    outline: 1px solid rgba(255,255,255,.08);
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
-    .tile:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadowHover);
-    }
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #22c55e;
+}
 
-    .tile:active {
-        transform: translateY(0);
-    }
+/* Grid & Tiles */
+.content { flex: 1; padding: 40px 20px; display: flex; justify-content: center; }
+.content__inner { width: 100%; max-width: 1200px; }
 
-/* Icon */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 20px;
+}
+
+/* ✅ THE TILE: MAGIC ORBITAL BORDER LOGIC */
+.tile {
+    position: relative;
+    border: none; /* Removed standard border to use the magic border instead */
+    border-radius: var(--radius);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: left;
+    color: var(--tileText);
+    background: #111827; /* Solid base background */
+    overflow: hidden; /* Clips the spinning beam */
+    z-index: 1;
+}
+
+/* 1. The Spinning "Electric Beam" (Hidden by default) */
+.tile::before {
+    content: '';
+    position: absolute;
+    width: 200%; /* Wider than the tile to ensure corners are covered */
+    height: 200%;
+    background-image: conic-gradient(
+        transparent, 
+        transparent, 
+        transparent, 
+        var(--electric-blue) /* This is the 'dot' */
+    );
+    top: -50%;
+    left: -50%;
+    animation: rotateBeam 4s linear infinite;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: -2;
+}
+
+/* 2. The Inner Card Mask (Covers the middle of the spinning beam) */
+.tile::after {
+    content: '';
+    position: absolute;
+    inset: 2px; /* This defines the thickness of the magic border */
+    background: linear-gradient(135deg, var(--tile), var(--tile2));
+    border-radius: calc(var(--radius) - 2px);
+    z-index: -1;
+}
+
+/* ✅ HOVER STATES */
+.tile:hover {
+    transform: translateY(-5px);
+    animation: electricPulse 1.5s infinite;
+    box-shadow: 0 0 30px var(--electric-glow);
+}
+
+/* Reveal the beam on hover */
+.tile:hover::before {
+    opacity: 1;
+}
+
+/* Icon & Text must stay above the mask */
+.tile > * {
+    position: relative;
+    z-index: 2;
+}
+
 .tile__icon {
-    width: 44px;
-    height: 44px;
+    width: 56px;
+    height: 56px;
+    background: var(--icon-bg);
     border-radius: 12px;
     display: grid;
     place-items: center;
-    background: var(--icon-bg);
+    transition: all 0.3s ease;
 }
 
-/* Footer */
+.tile:hover .tile__icon {
+    background: var(--icon-bg-hover);
+}
+
+.tile__icon svg {
+    width: 28px;
+    height: 28px;
+    color: #fff;
+    transition: color 0.3s ease;
+}
+
+.tile:hover .tile__icon svg {
+    color: var(--electric-blue);
+    filter: drop-shadow(0 0 8px var(--electric-blue));
+}
+
+.tile__metrics {
+    margin-top: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--electric-blue);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
 .footer {
     height: 40px;
-    background: linear-gradient(90deg, var(--purple-dark), var(--purple));
-    color: rgba(255,255,255,.92);
+    background: var(--purple-dark);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 14px;
-    font-size: 12.5px;
+    padding: 0 20px;
+    font-size: 12px;
+}
+/* ✅ Electric Blue Checkbox Styling */
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--tileSub);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
 }
 
-.footer__right {
-    opacity: .92;
+input[type="checkbox"]:checked {
+    background-color: var(--electric-blue);
+    border-color: var(--electric-blue);
+    box-shadow: 0 0 10px var(--electric-glow);
+}
+
+/* Adds the 'check' mark icon when checked */
+input[type="checkbox"]:checked::after {
+    content: '✔';
+    position: absolute;
+    color: #111827;
+    font-size: 14px;
+    left: 3px;
+    top: -1px;
 }

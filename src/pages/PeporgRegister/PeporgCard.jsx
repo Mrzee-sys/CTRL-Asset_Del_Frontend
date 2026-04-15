@@ -1,714 +1,327 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-
+﻿import React, { useState, useRef, useEffect, useMemo } from "react";
+import Papa from "papaparse";
+import { useNavigate, useParams, useLocation } from "react-router-dom"; // ✅ Merged Import
+import { createOrg, fetchOrgById, updateOrg } from "./peporgApi";
+import { fetchPeopleByOrg, createPerson } from "./peopleApi";
+import PeopleTable from "./PeopleTable";
+import DetailsLayout from "../DetailsLayout";
 import "../../styles/DetailPageLayout.css";
-import "../../styles/Register.css";
 
-import { createOrg, updateOrg, fetchOrgById } from "./peporgApi";
-
-const EMPTY_ORG = {
-    orgName: "",
-    tradingAs: "",
-    address: "",
-    contactNumber: "",
-    vatTaxNumber: "",
-    companyRegNumber: "",
-    people: []
-};
-
-// -----------------------------
-// CSV helpers (AD / MIT-07)
-// -----------------------------
-function normalizeHeader(h) {
-    return String(h || "").trim().toLowerCase().replace(/\s+/g, "");
-}
-
-function isValidEmail(email) {
-    const e = String(email || "").trim();
-    return e.includes("@") && e.includes(".");
-}
-
-// Detect delimiter from first line (supports ; or ,)
-function detectDelimiter(csvText) {
-    const firstLine = String(csvText || "").split(/\r?\n/)[0] || "";
-    const commas = (firstLine.match(/,/g) || []).length;
-    const semis = (firstLine.match(/;/g) || []).length;
-
-    // If semicolons dominate, use semicolon
-    if (semis > commas) return ";";
-    return ",";
-}
-
-// CSV parser with quoted field support + configurable delimiter
-function parseCsv(text, delimiter = ",") {
-    const rows = [];
-    let row = [];
-    let field = "";
-    let inQuotes = false;
-
-    const s = String(text || "");
-
-    for (let i = 0; i < s.length; i++) {
-        const ch = s[i];
-        const next = s[i + 1];
-
-        if (inQuotes) {
-            if (ch === '"' && next === '"') {
-                field += '"';
-                i++;
-            } else if (ch === '"') {
-                inQuotes = false;
-            } else {
-                field += ch;
-            }
-        } else {
-            if (ch === '"') {
-                inQuotes = true;
-            } else if (ch === delimiter) {
-                row.push(field);
-                field = "";
-            } else if (ch === "\n") {
-                row.push(field);
-                rows.push(row);
-                row = [];
-                field = "";
-            } else if (ch === "\r") {
-                // ignore
-            } else {
-                field += ch;
-            }
-        }
-    }
-
-    row.push(field);
-    rows.push(row);
-
-    return rows.filter((r) => r.some((c) => String(c || "").trim() !== ""));
-}
-
-function idx(headers, label) {
-    return headers.indexOf(normalizeHeader(label));
-}
-
-function buildPeopleFromAdCsv(csvText) {
-    const delimiter = detectDelimiter(csvText);
-    const grid = parseCsv(csvText, delimiter);
-    if (!grid.length) return { rows: [], errors: ["CSV is empty."], delimiter };
-
-    const headers = grid[0].map(normalizeHeader);
-
-    const iEmail = idx(headers, "Email");
-    if (iEmail === -1) return { rows: [], errors: ['Missing required column: "Email"'], delimiter };
-
-    const iAccount = idx(headers, "Account");
-    const iFirst = idx(headers, "First Name");
-    const iLast = idx(headers, "Last Name");
-    const iDisplay = idx(headers, "Display Name");
-    const iTitle = idx(headers, "Title");
-    const iCompany = idx(headers, "Company");
-    const iDept = idx(headers, "Department");
-    const iPhone = idx(headers, "Phone");
-    const iEmpId = idx(headers, "Employee ID");
-    const iEmpType = idx(headers, "Employee Type");
-    const iManager = idx(headers, "Manager");
-    const iLogon = idx(headers, "Logon");
-    const iLogon2k = idx(headers, "Logon (2K)");
-    const iOpco = idx(headers, "OpCo");
-    const iCsb = idx(headers, "CSB");
-    const iLocation = idx(headers, "Location");
-
-    const out = [];
-    const errors = [];
-
-    for (let r = 1; r < grid.length; r++) {
-        const row = grid[r];
-
-        const person = {
-            account: iAccount !== -1 ? String(row[iAccount] || "").trim() : "",
-            firstName: iFirst !== -1 ? String(row[iFirst] || "").trim() : "",
-            lastName: iLast !== -1 ? String(row[iLast] || "").trim() : "",
-            displayName: iDisplay !== -1 ? String(row[iDisplay] || "").trim() : "",
-            email: String(row[iEmail] || "").trim().toLowerCase(),
-            title: iTitle !== -1 ? String(row[iTitle] || "").trim() : "",
-            company: iCompany !== -1 ? String(row[iCompany] || "").trim() : "",
-            department: iDept !== -1 ? String(row[iDept] || "").trim() : "",
-            phone: iPhone !== -1 ? String(row[iPhone] || "").trim() : "",
-            employeeId: iEmpId !== -1 ? String(row[iEmpId] || "").trim() : "",
-            employeeType: iEmpType !== -1 ? String(row[iEmpType] || "").trim() : "",
-            manager: iManager !== -1 ? String(row[iManager] || "").trim() : "",
-            logon: iLogon !== -1 ? String(row[iLogon] || "").trim() : "",
-            logon2k: iLogon2k !== -1 ? String(row[iLogon2k] || "").trim() : "",
-            opco: iOpco !== -1 ? String(row[iOpco] || "").trim() : "",
-            csb: iCsb !== -1 ? String(row[iCsb] || "").trim() : "",
-            location: iLocation !== -1 ? String(row[iLocation] || "").trim() : ""
-        };
-
-        // skip blank lines
-        if (!person.email && !person.displayName && !person.account) continue;
-
-        const ok = isValidEmail(person.email);
-        out.push({ ...person, __valid: ok });
-        if (!ok) errors.push(`Row ${r + 1}: invalid email "${person.email}"`);
-    }
-
-    return { rows: out, errors, delimiter };
-}
-
-function mergeByEmail(existing, incoming) {
-    const map = new Map();
-
-    (existing || []).forEach((p) => {
-        const key = String(p?.email || "").trim().toLowerCase();
-        if (key) map.set(key, p);
-    });
-
-    (incoming || []).forEach((p) => {
-        const key = String(p?.email || "").trim().toLowerCase();
-        if (key) map.set(key, p); // incoming overwrites
-    });
-
-    return Array.from(map.values());
-}
-
-function downloadAdTemplateCsv() {
-    const sample =
-        "Name;Account;First Name;Last Name;Display Name;Email;Title;Company;Department;Phone;Employee ID;Employee Type;Manager;Logon;Logon (2K);OpCo;CSB;Location\n" +
-        'Doe, Jane;jane.doe;Jane;Doe;"Doe, Jane (JNB-XXX)";jane.doe@company.com;Manager;Omnicom;IT;+27110000000;1000000001;Regular;"Boss, One";IPG\\jane.doe;IPG\\jane.doe;OPCO;CSB;JNB\n';
-
-    const blob = new Blob([sample], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "people_import_ad_template.csv";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    URL.revokeObjectURL(url);
-}
-
-export default function PeporgCard() {
-    const navigate = useNavigate();
+const PeporgCard = () => {
     const { id } = useParams();
-    const isCreate = !id || id === "new";
-
-    const [draftStarted] = useState(() => new Date().toISOString());
-    const [org, setOrg] = useState(EMPTY_ORG);
-    const [orgId, setOrgId] = useState(isCreate ? "" : id);
-    const [savingOrg, setSavingOrg] = useState(false);
-    const [err, setErr] = useState("");
-
-    // CSV import state
+    const navigate = useNavigate();
     const fileInputRef = useRef(null);
-    const [csvFileName, setCsvFileName] = useState("");
-    const [importRows, setImportRows] = useState([]);
-    const [importErrors, setImportErrors] = useState([]);
-    const [importStatus, setImportStatus] = useState("");
-    const [savingPeople, setSavingPeople] = useState(false);
+    const location = useLocation();
+    
+    // Helper: treat undefined or "new" as new org
+    const isNewOrg = !id || id === "new";
 
-    // ✅ New: controls "import disappears after successful save"
-    const [importComplete, setImportComplete] = useState(false);
+    // --- State ---
+    // Initializes from Dashboard state (Drill-downs)
+    const [activeTab, setActiveTab] = useState(() => location.state?.initialTab || "details");
+    const [peopleFilter, setPeopleFilter] = useState(location.state?.initialFilter || null);
+    
+    const [editMode, setEditMode] = useState(isNewOrg); 
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [saveMsg, setSaveMsg] = useState("");
+    const [peopleCount, setPeopleCount] = useState(0);
+    const [peopleList, setPeopleList] = useState([]);
+    const [savedOrg, setSavedOrg] = useState(null);
 
-    const fmt = useMemo(() => {
-        const dateTime = (d) => {
-            if (!d) return "—";
-            const dt = new Date(d);
-            if (Number.isNaN(dt.getTime())) return "—";
-            return dt.toLocaleString();
-        };
-        return { dateTime };
-    }, []);
+    const [form, setForm] = useState({
+        orgName: "",
+        tradingAs: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+        contactNumber: "",
+        vatTaxNumber: "",
+        companyRegNumber: ""
+    });
 
-    // Load existing org when editing
+    // Derived: Check if ALL required fields are filled
+    const isFormComplete = [
+        form.orgName,
+        form.contactNumber,
+        form.vatTaxNumber,
+        form.companyRegNumber,
+        form.addressLine1,
+        form.city,
+        form.state
+    ].every(v => typeof v === "string" && v.trim() !== "");
+
+    // --- Effects ---
     useEffect(() => {
-        if (isCreate) return;
-
-        let alive = true;
-
-        (async () => {
-            try {
-                const data = await fetchOrgById(id);
-                if (!alive) return;
-
-                const people = Array.isArray(data?.people) ? data.people : [];
-                setOrg({ ...EMPTY_ORG, ...data, people });
-                setOrgId(data?._id || id);
-
-                // If org already has people, show saved list by default
-                if (people.length > 0) setImportComplete(true);
-            } catch (e) {
-                if (!alive) return;
-                setErr(e?.message || "Failed to load organisation");
-            }
-        })();
-
-        return () => {
-            alive = false;
-        };
-    }, [id, isCreate]);
-
-    const orgComplete = useMemo(() => {
-        const required = ["orgName", "tradingAs", "address", "contactNumber", "vatTaxNumber", "companyRegNumber"];
-        return required.every((k) => String(org[k] || "").trim() !== "");
-    }, [org]);
-
-    const peopleUnlocked = Boolean(orgId);
-
-    const validCount = importRows.filter((r) => r.__valid).length;
-    const invalidCount = importRows.filter((r) => !r.__valid).length;
-
-    function setField(name, value) {
-        setOrg((prev) => ({ ...prev, [name]: value }));
-    }
-
-    async function onSaveOrg() {
-        setErr("");
-
-        if (!orgComplete) {
-            setErr("Complete all Organisation fields before saving.");
-            return;
+        if (!isNewOrg) {
+            loadOrgData();
         }
+    }, [id]);
 
-        setSavingOrg(true);
+    const loadOrgData = async () => {
         try {
-            const payload = {
-                orgName: org.orgName.trim(),
-                tradingAs: org.tradingAs.trim(),
-                address: org.address.trim(),
-                contactNumber: org.contactNumber.trim(),
-                vatTaxNumber: org.vatTaxNumber.trim(),
-                companyRegNumber: org.companyRegNumber.trim(),
-                people: Array.isArray(org.people) ? org.people : []
-            };
+            setLoading(true);
+            const org = await fetchOrgById(id);
+            setForm(org);
+            setSavedOrg(org);
 
-            if (peopleUnlocked) {
-                const updated = await updateOrg(orgId, payload);
-                setOrg({ ...EMPTY_ORG, ...updated, people: Array.isArray(updated?.people) ? updated.people : [] });
-            } else {
-                const created = await createOrg(payload);
-                setOrg({ ...EMPTY_ORG, ...created, people: Array.isArray(created?.people) ? created.people : [] });
-                setOrgId(created._id || created.id || "");
-            }
-        } catch (e) {
-            setErr(e?.message || "Failed to save organisation");
+            const people = await fetchPeopleByOrg(id);
+            setPeopleCount(people?.length || 0);
+            setPeopleList(Array.isArray(people) ? people : []);
+        } catch (err) {
+            setError("Failed to load organisation data.");
         } finally {
-            setSavingOrg(false);
+            setLoading(false);
         }
-    }
+    };
 
-    async function onCsvSelected(file) {
-        setErr("");
-        setImportStatus("");
-        setImportErrors([]);
-        setImportRows([]);
-        setCsvFileName(file?.name || "");
+    // Employment type breakdown
+    const employmentTypes = ["Contractor", "Permanent", "Freelancer", "Temp Hire", "Intern"];
+    const employmentCounts = useMemo(() => {
+        const counts = {};
+        employmentTypes.forEach(type => { counts[type] = 0; });
+        peopleList.forEach(p => {
+            const t = (p.employeeType || "").trim();
+            if (employmentTypes.includes(t)) counts[t]++;
+        });
+        return counts;
+    }, [peopleList]);
 
+    // --- Handlers ---
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleEdit = () => setEditMode(true);
+    const handleBack = () => {
+        if (isNewOrg) navigate(-1);
+        setEditMode(false);
+        if (savedOrg) setForm(savedOrg);
+    };
+
+    const handleSubmit = async () => {
+        setLoading(true);
+        try {
+            if (!isNewOrg) {
+                await updateOrg(id, form);
+                setSaveMsg("Got it! Updated successfully.");
+                setEditMode(false);
+            } else {
+                const newOrg = await createOrg(form);
+                setSaveMsg("Got it! Created successfully.");
+                
+                const newRealId = newOrg?.id || newOrg?._id || newOrg?.orgId;
+                if (newRealId) {
+                    navigate(`/peporg/${newRealId}`, { replace: true });
+                } else {
+                    setEditMode(false);
+                }
+            }
+        } catch (err) {
+            setError("Error saving data.");
+        } finally {
+            setLoading(false);
+            setTimeout(() => setSaveMsg(""), 3000);
+        }
+    };
+
+    const handleImportPeople = () => fileInputRef.current?.click();
+    
+    const handleFileChange = (e) => {
+        const file = e.target.files && e.target.files[0];
         if (!file) return;
-
-        try {
-            const text = await file.text();
-            const { rows, errors, delimiter } = buildPeopleFromAdCsv(text);
-
-            setImportRows(rows);
-            setImportErrors(errors);
-
-            if (errors.length === 0 && rows.length > 0) {
-                setImportStatus(`✅ CSV loaded (${rows.length} rows) using delimiter "${delimiter}". Review and click "Add People".`);
-            } else if (errors.length > 0) {
-                setImportStatus(`⚠️ CSV loaded, but has issues. Fix errors below.`);
-            } else {
-                setImportStatus(`⚠️ CSV loaded but no usable rows were found.`);
+        setError("");
+        setSaveMsg("");
+        
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                try {
+                    for (const row of results.data) {
+                        const personData = { ...row, orgId: id };
+                        await createPerson(personData);
+                    }
+                    setSaveMsg("Import successful!");
+                    loadOrgData();
+                } catch (err) {
+                    setError(err?.message || "Import failed.");
+                } finally {
+                    e.target.value = null;
+                }
+            },
+            error: (err) => {
+                setError(err?.message || "Failed to parse CSV.");
+                e.target.value = null;
             }
-        } catch {
-            setErr("Failed to read the CSV file.");
-        }
-    }
+        });
+    };
 
-    function clearImport() {
-        setCsvFileName("");
-        setImportRows([]);
-        setImportErrors([]);
-        setImportStatus("");
-        setImportComplete(false);
-
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    }
-
-    function removeImportRow(index) {
-        setImportRows((prev) => prev.filter((_, i) => i !== index));
-    }
-
-    async function savePeopleToOrg() {
-        setErr("");
-        setImportStatus("");
-
-        if (!peopleUnlocked) {
-            setErr("Save the organisation first to get an Org ID.");
-            return;
-        }
-
-        if (importRows.length === 0) {
-            setErr("No imported rows to save.");
-            return;
-        }
-
-        if (invalidCount > 0) {
-            setErr("Fix invalid emails (or remove those rows) before saving.");
-            return;
-        }
-
-        setSavingPeople(true);
-        try {
-            const incoming = importRows.map(({ __valid, ...p }) => p);
-            const merged = mergeByEmail(org.people || [], incoming);
-
-            const payload = {
-                ...org,
-                orgName: String(org.orgName || "").trim(),
-                tradingAs: String(org.tradingAs || "").trim(),
-                address: String(org.address || "").trim(),
-                contactNumber: String(org.contactNumber || "").trim(),
-                vatTaxNumber: String(org.vatTaxNumber || "").trim(),
-                companyRegNumber: String(org.companyRegNumber || "").trim(),
-                people: merged
-            };
-
-            const updated = await updateOrg(orgId, payload);
-            const savedPeople = Array.isArray(updated?.people) ? updated.people : [];
-
-            setOrg({ ...EMPTY_ORG, ...updated, people: savedPeople });
-
-            // ✅ success UX: hide import + show saved list
-            setImportComplete(true);
-            setImportStatus(`✅ Imported successfully. Saved people: ${savedPeople.length}`);
-
-            // Clear import inputs
-            setCsvFileName("");
-            setImportRows([]);
-            setImportErrors([]);
-            if (fileInputRef.current) fileInputRef.current.value = "";
-        } catch (e) {
-            setErr(e?.message || "Failed to save people");
-        } finally {
-            setSavingPeople(false);
-        }
-    }
+    const handleDownloadTemplate = () => {
+        const headers = ["firstName", "lastName", "email", "employeeType", "employeeId", "department", "manager", "location", "staffLevel"];
+        const csvContent = headers.join(",") + "\n";
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "people_import_template.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     return (
-        <div className="assetPage">
-            <div className="assetShell">
-                {/* HEADER */}
-                <header className="assetHeader">
-                    <div className="assetHeader__nav">
-                        <button className="btn btnGhost" onClick={() => navigate("/peporg")} type="button">
-                            ← Back
-                        </button>
+        <DetailsLayout
+            title={form.orgName || "Untitled Organisation"}
+            subtitle={isNewOrg ? "New Organisation • Creating new record" : `Organisation • ID: ${id}`}
+            statusPills={[{ text: isNewOrg ? "New" : "Active", className: "pillLive" }]}
+            sidebarContent={
+                <>
+                    <div className="sideBlock">
+                        <div className="sideBlock__title">Quick Summary</div>
+                        {activeTab === "people" ? (
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                {employmentTypes.map(type => (
+                                    <li key={type} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 2 }}>
+                                        <span>{type}</span>
+                                        <span style={{ fontWeight: 700 }}>{employmentCounts[type]}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="summaryRow">
+                                <span className="summaryLabel">Status</span>
+                                <span className="pill pillLive">{isNewOrg ? "New" : "Active"}</span>
+                            </div>
+                        )}
                     </div>
-
-                    <div className="assetHeader__main">
-                        <div className="assetHeader__titleBlock">
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center" }}>
-                                <h1 className="assetHeader__title" style={{ margin: 0 }}>
-                                    {org.orgName ? org.orgName : "Untitled Organisation"}
-                                </h1>
-                                <span className={`pill ${peopleUnlocked ? "pillLive" : "pillStore"}`}>
-                                    {peopleUnlocked ? "Saved" : "Draft"}
-                                </span>
-                            </div>
-
-                            <div className="assetHeader__meta" style={{ marginTop: 4, justifyContent: "center" }}>
-                                <span className="metaText">People & Organisations</span>
-                                <span className="metaDot">•</span>
-                                <span className="metaText">{isCreate ? "Creating organisation" : "Editing organisation"}</span>
-                            </div>
-                        </div>
+                    <div className="sideBlock">
+                        <div className="sideBlock__title">Registration Details</div>
+                        <div className="summaryRow"><div className="summaryLabel">Contact</div><div className="summaryValue">{form.contactNumber || "—"}</div></div>
+                        <div className="summaryRow"><div className="summaryLabel">VAT No.</div><div className="summaryValue">{form.vatTaxNumber || "—"}</div></div>
                     </div>
-
-                    <div className="assetHeader__right">
-                        <div className="auditMeta">
-                            <div className="auditRow">
-                                <span className="auditLabel">Draft started</span>
-                                <span className="auditValue">{fmt.dateTime(draftStarted)}</span>
-                            </div>
-                            <div className="auditRow">
-                                <span className="auditLabel">Org ID</span>
-                                <span className="auditValue">{peopleUnlocked ? orgId : "—"}</span>
-                            </div>
-                        </div>
-
-                        <div className="headerLogos">
-                            <div className="logoBox" title="Organisation">
-                                <div style={{ fontWeight: 900 }}>ORG</div>
-                            </div>
-                            <div className="logoBox" title="People">
-                                <div style={{ fontWeight: 900 }}>PPL</div>
-                            </div>
-                        </div>
+                    <div className="sideBlock">
+                        <div className="sideBlock__title">People</div>
+                        <div className="bigStat">{peopleCount}</div>
                     </div>
-                </header>
-
-                {/* BODY */}
-                <main className="assetGrid">
-                    <section className="panel">
+                    
+                    <div className="actionBlock" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {(!isNewOrg && !editMode) && (
+                            <>
+                                <button className="btn btnPrimary" onClick={handleImportPeople} type="button">Import People</button>
+                                <input type="file" ref={fileInputRef} style={{display:'none'}} onChange={handleFileChange} />
+                                <button className="btn btnGhost" onClick={handleDownloadTemplate} type="button">Download Template</button>
+                                <button className="btn btnPrimary" onClick={() => navigate(`/peporg/${id}/people/new`)} type="button">Add Person</button>
+                            </>
+                        )}
+                        
+                        {editMode ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <button className="btn btnPrimary" onClick={handleSubmit} disabled={loading || !isFormComplete}>
+                                    {loading ? "Saving..." : "Save"}
+                                </button>
+                                <button className="btn btnGhost" onClick={handleBack}>Cancel</button>
+                            </div>
+                        ) : (
+                            <button className="btn btnPrimary" onClick={handleEdit}>Edit Organisation</button>
+                        )}
+                        {saveMsg && <div className="saveFeedback">{saveMsg}</div>}
+                    </div>
+                </>
+            }
+        >
+            {/* ===== TABS ===== */}
+            <div className="tabBarContainer" style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 2, marginBottom: 18 }}>
+                {["details", "people", "leadership"].map(tab => (
+                    <button
+                        key={tab}
+                        className={`btn ${activeTab === tab ? "btnPrimary" : "btnGhost"}`}
+                        onClick={() => setActiveTab(tab)}
+                        style={{ fontWeight: 600, textTransform: 'capitalize', fontSize: 16 }}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
+            
+            <div style={{ marginTop: 24 }}>
+                {activeTab === "details" ? (
+                    <form id="peporg-form" autoComplete="off">
                         <div className="panel__title">Organisation Details</div>
-
-                        {err ? (
-                            <div style={{ color: "#b42318", marginBottom: 10, fontWeight: 800 }}>{err}</div>
-                        ) : null}
-
-                        {/* Block 1: Organisation fields */}
+                        {error && <div className="errorText">{error}</div>}
                         <div className="fieldGrid">
-                            <div className="field">
-                                <div className="label">Organization Name</div>
-                                <input className="value" value={org.orgName} onChange={(e) => setField("orgName", e.target.value)} />
-                            </div>
-
-                            <div className="field">
-                                <div className="label">Trading As</div>
-                                <input className="value" value={org.tradingAs} onChange={(e) => setField("tradingAs", e.target.value)} />
-                            </div>
-
-                            <div className="field fieldFull">
-                                <div className="label">Address</div>
-                                <input className="value" value={org.address} onChange={(e) => setField("address", e.target.value)} />
-                            </div>
-
-                            <div className="field">
-                                <div className="label">Contact Number</div>
-                                <input className="value" value={org.contactNumber} onChange={(e) => setField("contactNumber", e.target.value)} />
-                            </div>
-
-                            <div className="field">
-                                <div className="label">VAT / Tax Number</div>
-                                <input className="value" value={org.vatTaxNumber} onChange={(e) => setField("vatTaxNumber", e.target.value)} />
-                            </div>
-
-                            <div className="field fieldFull">
-                                <div className="label">Company Registration Number</div>
-                                <input className="value" value={org.companyRegNumber} onChange={(e) => setField("companyRegNumber", e.target.value)} />
-                            </div>
-                        </div>
-
-                        {/* Block 2: People */}
-                        <div style={{ marginTop: 14 }}>
-                            <div className="panel__title">People</div>
-
-                            {!peopleUnlocked ? (
-                                <div className="sideBlock" style={{ marginTop: 10 }}>
-                                    <div className="sideBlock__title">Locked</div>
-                                    <div className="sideBlock__text">
-                                        Save the organisation first. After the server returns an Org ID, this section unlocks.
-                                    </div>
-                                </div>
-                            ) : (
+                            <div className="field"><label className="label">Organisation Name</label><input className="value" name="orgName" value={form.orgName} onChange={handleChange} disabled={!editMode} required /></div>
+                            <div className="field"><label className="label">Trading As</label><input className="value" name="tradingAs" value={form.tradingAs} onChange={handleChange} disabled={!editMode} /></div>
+                            {editMode && (
                                 <>
-                                    {/* Status banner */}
-                                    {importStatus ? (
-                                        <div
-                                            style={{
-                                                background: importStatus.startsWith("✅") ? "#ecfdf3" : "#fffaeb",
-                                                border: importStatus.startsWith("✅") ? "1px solid #abefc6" : "1px solid #fedf89",
-                                                color: importStatus.startsWith("✅") ? "#067647" : "#b54708",
-                                                padding: 12,
-                                                borderRadius: 8,
-                                                fontWeight: 800,
-                                                marginBottom: 12
-                                            }}
-                                        >
-                                            {importStatus}
-                                        </div>
-                                    ) : null}
-
-                                    {/* If import completed, hide import UI and show saved table */}
-                                    {importComplete ? (
-                                        <>
-                                            <div className="registerTableWrap">
-                                                <table className="registerTable" style={{ minWidth: 900 }}>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Display Name</th>
-                                                            <th>Email</th>
-                                                            <th>Title</th>
-                                                            <th>Department</th>
-                                                            <th>Manager</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {(org.people || []).length === 0 ? (
-                                                            <tr>
-                                                                <td className="registerEmpty" colSpan={5}>
-                                                                    No people saved yet.
-                                                                </td>
-                                                            </tr>
-                                                        ) : (
-                                                            org.people.map((p, i) => (
-                                                                <tr key={`${p.email || "noemail"}-${i}`}>
-                                                                    <td>{p.displayName || "—"}</td>
-                                                                    <td>{p.email || "—"}</td>
-                                                                    <td>{p.title || "—"}</td>
-                                                                    <td>{p.department || "—"}</td>
-                                                                    <td>{p.manager || "—"}</td>
-                                                                </tr>
-                                                            ))
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
-                                            <div style={{ marginTop: 12, display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                                                <button className="btn btnGhost" type="button" onClick={() => setImportComplete(false)}>
-                                                    Import more people
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {/* Import UI (only visible until save succeeds) */}
-                                            <div className="sideBlock" style={{ marginTop: 10 }}>
-                                                <div className="sideBlock__title">Import from CSV</div>
-                                                <div className="sideBlock__text">
-                                                    Supports AD exports with comma or semicolon delimiters. Required column: <b>Email</b>.
-                                                    <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                                        <label className="btn btnPrimary" style={{ cursor: "pointer" }}>
-                                                            Choose CSV…
-                                                            <input
-                                                                ref={fileInputRef}
-                                                                type="file"
-                                                                accept=".csv,text/csv"
-                                                                style={{ display: "none" }}
-                                                                onChange={(e) => {
-                                                                    const file = e.target.files?.[0];
-                                                                    if (file) onCsvSelected(file);
-                                                                    // allow re-selecting the same file
-                                                                    e.target.value = "";
-                                                                }}
-                                                            />
-                                                        </label>
-
-                                                        <button className="btn btnGhost" type="button" onClick={clearImport} disabled={!csvFileName && importRows.length === 0}>
-                                                            Clear
-                                                        </button>
-
-                                                        <button className="btn btnGhost" type="button" onClick={downloadAdTemplateCsv}>
-                                                            Download template
-                                                        </button>
-                                                    </div>
-
-                                                    {csvFileName ? (
-                                                        <div style={{ marginTop: 8, fontSize: 12 }}>
-                                                            File: <b>{csvFileName}</b>
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-
-                                            {importErrors.length > 0 ? (
-                                                <div style={{ marginTop: 10, color: "#b42318", fontWeight: 800 }}>
-                                                    {importErrors.slice(0, 10).map((m) => (
-                                                        <div key={m}>{m}</div>
-                                                    ))}
-                                                    {importErrors.length > 10 ? <div>…and {importErrors.length - 10} more</div> : null}
-                                                </div>
-                                            ) : null}
-
-                                            {importRows.length > 0 ? (
-                                                <>
-                                                    <div style={{ marginTop: 10, fontSize: 12, color: "#64748b", fontWeight: 800 }}>
-                                                        Parsed: {importRows.length} • Valid emails: {validCount} • Invalid emails: {invalidCount}
-                                                    </div>
-
-                                                    <div className="registerTableWrap" style={{ marginTop: 10 }}>
-                                                        <table className="registerTable" style={{ minWidth: 1100 }}>
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Account</th>
-                                                                    <th>Display Name</th>
-                                                                    <th>Email</th>
-                                                                    <th>Title</th>
-                                                                    <th>Department</th>
-                                                                    <th>Manager</th>
-                                                                    <th>Valid</th>
-                                                                    <th></th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {importRows.map((p, idxRow) => (
-                                                                    <tr key={`${p.email}-${idxRow}`}>
-                                                                        <td>{p.account || "—"}</td>
-                                                                        <td>{p.displayName || "—"}</td>
-                                                                        <td>{p.email || "—"}</td>
-                                                                        <td>{p.title || "—"}</td>
-                                                                        <td>{p.department || "—"}</td>
-                                                                        <td>{p.manager || "—"}</td>
-                                                                        <td>{p.__valid ? "Yes" : "No"}</td>
-                                                                        <td style={{ width: 110 }}>
-                                                                            <button className="btn btnGhost" type="button" onClick={() => removeImportRow(idxRow)}>
-                                                                                Remove
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-
-                                                    <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                                                        <button
-                                                            className="btn btnPrimary"
-                                                            type="button"
-                                                            onClick={savePeopleToOrg}
-                                                            disabled={savingPeople || invalidCount > 0}
-                                                        >
-                                                            {savingPeople ? "Saving..." : "Add People to Organisation"}
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            ) : null}
-                                        </>
-                                    )}
+                                    <div className="field"><label className="label">Contact Number</label><input className="value" name="contactNumber" value={form.contactNumber} onChange={handleChange} disabled={!editMode} /></div>
+                                    <div className="field"><label className="label">Company Registration Number</label><input className="value" name="companyRegNumber" value={form.companyRegNumber} onChange={handleChange} disabled={!editMode} /></div>
+                                    <div className="field"><label className="label">VAT Number</label><input className="value" name="vatTaxNumber" value={form.vatTaxNumber} onChange={handleChange} disabled={!editMode} /></div>
                                 </>
                             )}
                         </div>
-                    </section>
-
-                    <aside className="panel panelSticky">
-                        <div className="panel__title">Quick Summary</div>
-
-                        <div className="sideBlocks">
-                            <div className="sideBlock">
-                                <div className="sideBlock__title">Status</div>
-                                <div className="sideBlock__text">
-                                    {peopleUnlocked
-                                        ? "Organisation saved — People section available."
-                                        : "Draft — complete and save org to unlock People section."}
-                                </div>
-                            </div>
-
-                            <div className="sideBlock">
-                                <div className="sideBlock__title">People</div>
-                                <div className="sideBlock__text">
-                                    Saved people: <b>{Array.isArray(org.people) ? org.people.length : 0}</b>
-                                </div>
-                            </div>
-
-                            <div className="actionBlock">
-                                <div className="actionBlock__buttons">
-                                    <button className="btn btnPrimary" type="button" onClick={onSaveOrg} disabled={savingOrg}>
-                                        {savingOrg ? "Saving..." : "Save Organisation"}
-                                    </button>
-
-                                    <button className="btn btnGhost" type="button" onClick={() => navigate("/peporg")} disabled={savingOrg}>
-                                        Cancel
-                                    </button>
-                                </div>
+                        <div className="field fieldFull">
+                            <label className="label">Address</label>
+                            <div className="addressStack">
+                                <input className="value" name="addressLine1" placeholder="Line 1" value={form.addressLine1} onChange={handleChange} disabled={!editMode} style={{ marginBottom: 10 }} />
+                                <input className="value" name="city" placeholder="City" value={form.city} onChange={handleChange} disabled={!editMode} style={{ marginBottom: 10 }} />
+                                <input className="value" name="state" placeholder="State" value={form.state} onChange={handleChange} disabled={!editMode} />
                             </div>
                         </div>
-                    </aside>
-                </main>
+                    </form>
+                ) : activeTab === "leadership" ? (
+                    <div className="panel">
+                        <div className="panel__title">Leadership View</div>
+                        <div className="registerTableWrap">
+                            <table className="registerTable">
+                                <thead><tr><th>Name</th><th>Staff Level</th><th>Department</th><th>Manager</th><th>Email</th></tr></thead>
+                                <tbody>
+                                    {peopleList
+                                        .filter(p => {
+                                            const sl = (p.staffLevel || "").toUpperCase();
+                                            return sl.startsWith("M") || sl.startsWith("E") || sl.startsWith("P4");
+                                        })
+                                        .sort((a, b) => {
+                                            const rank = sl => {
+                                                const s = (sl || "").toUpperCase();
+                                                if (s.startsWith("E1")) return 1; if (s.startsWith("E2")) return 2;
+                                                if (s.startsWith("M3")) return 3; if (s.startsWith("M2")) return 4;
+                                                if (s.startsWith("M1")) return 5; if (s.startsWith("P4")) return 6;
+                                                return 99;
+                                            };
+                                            return rank(a.staffLevel) - rank(b.staffLevel);
+                                        })
+                                        .map((p, i) => (
+                                            <tr key={p.id || p._id || i} style={{ background: '#f7faff' }}>
+                                                <td style={{ fontWeight: 600 }}>{p.firstName} {p.lastName} <span style={{ background: '#00b4ff', color: '#fff', borderRadius: 8, fontSize: 11, padding: '2px 8px', marginLeft: 6 }}>Leadership</span></td>
+                                                <td style={{ fontWeight: 700 }}>{p.staffLevel}</td>
+                                                <td>{p.department}</td><td>{p.manager}</td><td>{p.email}</td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="panel">
+                        <div className="panel__title">People in Organisation</div>
+                        {peopleFilter && (
+                            <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span style={{ background: '#e0f7fa', color: '#007b8a', borderRadius: 8, fontSize: 13, padding: '2px 10px', fontWeight: 600 }}>Filter Active: {peopleFilter}</span>
+                                <button style={{ border: 'none', background: 'none', color: '#007b8a', fontWeight: 700, cursor: 'pointer', fontSize: 16 }} onClick={() => setPeopleFilter(null)}>×</button>
+                            </div>
+                        )}
+                        <PeopleTable orgId={id} filter={peopleFilter} />
+                    </div>
+                )}
             </div>
-        </div>
+        </DetailsLayout>
     );
-}
+};
+
+export default PeporgCard;

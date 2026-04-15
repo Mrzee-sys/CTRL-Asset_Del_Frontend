@@ -1,4 +1,23 @@
-﻿const API = import.meta.env.VITE_API_BASE_URL;
+// ===============================
+// Update a single person
+// ===============================
+export async function updatePerson(id, payload) {
+    const token = localStorage.getItem("token") || "";
+    const res = await fetch(`${API}/people/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined
+        },
+        body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+        const msg = await safeMessage(res);
+        throw new Error(msg || `Failed to update person (${res.status})`);
+    }
+    return res.json();
+}
+const API = import.meta.env.VITE_API_BASE_URL;
 
 // ===============================
 // Fetch organisation list
@@ -26,10 +45,9 @@ export async function fetchOrgs({ search = "", page = 1, limit = 50 } = {}) {
 }
 
 // ===============================
-// Fetch single organisation (The Edit Screen fix)
+// Fetch single organisation
 // ===============================
 export async function fetchOrgById(id) {
-    // Requesting from: http://localhost:5000/api/peporg/:id
     const token = localStorage.getItem("token") || "";
     const res = await fetch(`${API}/peporg/${id}`,
         {
@@ -91,7 +109,25 @@ export async function updateOrg(id, payload) {
 }
 
 // ===============================
-// Create a single person
+// Fetch all people for an organisation
+// ===============================
+export async function fetchPeopleByOrg(orgId) {
+    const token = localStorage.getItem("token") || "";
+    const res = await fetch(`${API}/people?orgId=${orgId}`,
+        {
+            headers: {
+                Authorization: token ? `Bearer ${token}` : undefined
+            }
+        }
+    );
+    if (!res.ok) {
+        throw new Error(`Failed to load people (${res.status})`);
+    }
+    return res.json();
+}
+
+// ===============================
+// Create a single person (Crucial for CSV Import)
 // ===============================
 export async function createPerson(payload) {
     const token = localStorage.getItem("token") || "";
@@ -126,24 +162,6 @@ export async function bulkCreatePeople(people) {
     if (!res.ok) {
         const msg = await safeMessage(res);
         throw new Error(msg || `Failed to bulk create people (${res.status})`);
-    }
-    return res.json();
-}
-
-// ===============================
-// Fetch person by email
-// ===============================
-export async function fetchPersonByEmail(email) {
-    const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/people/email/${encodeURIComponent(email)}`,
-        {
-            headers: {
-                Authorization: token ? `Bearer ${token}` : undefined
-            }
-        }
-    );
-    if (!res.ok) {
-        throw new Error(`Failed to load person (${res.status})`);
     }
     return res.json();
 }

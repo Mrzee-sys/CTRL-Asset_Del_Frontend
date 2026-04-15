@@ -52,6 +52,18 @@
    ✅ BUTTON SYSTEM (LOCAL)
    - ensures Save/Cancel/Add/Back all match theme on this page
    ========================================================= */
+.assetHeader {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    position: relative;
+}
 .assetPage .btn {
     appearance: none;
     border: 1px solid transparent;
