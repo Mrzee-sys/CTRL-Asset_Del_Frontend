@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { icons } from "./PeopleDashboard.icons";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +35,6 @@ export default function PeopleDashboard() {
       setLoading(true);
       try {
         const orgRes = await listOrganisations();
-        // Handle both { rows: [] } and direct array [] responses
         setOrgs(orgRes?.rows || orgRes || []);
       } catch (e) {
         console.error("Dashboard Load Error (Orgs):", e);
@@ -49,22 +47,17 @@ export default function PeopleDashboard() {
 
   // --- STEP 2: Fetch Data only when an Organization is selected ---
   useEffect(() => {
-    // If nothing is selected, clear the tiles
     if (!selectedOrgId || selectedOrgId === "") {
       setPeople([]);
       setQualifications([]);
       return;
     }
-
     async function fetchOrgData() {
       try {
-        // We fetch data specific to the selection. 
-        // This avoids the 400 "Bad Request" by giving the API context.
         const [peopleRes, qualRes] = await Promise.all([
           listPeople({ orgId: selectedOrgId, limit: 1000 }),
           listQualifications({ orgId: selectedOrgId, limit: 2000 })
         ]);
-
         setPeople(peopleRes?.rows || peopleRes || []);
         setQualifications(qualRes?.rows || qualRes || []);
       } catch (e) {
@@ -74,19 +67,17 @@ export default function PeopleDashboard() {
     fetchOrgData();
   }, [selectedOrgId]);
 
-  // --- Filter Logic (The String Coercion Fix for MongoDB IDs) ---
+  // --- Filter Logic ---
   const filteredPeople = selectedOrgId 
     ? people.filter(p => String(p.orgId) === String(selectedOrgId)) 
     : [];
-    
   const filteredQuals = selectedOrgId 
     ? qualifications.filter(q => String(q.orgId) === String(selectedOrgId)) 
     : [];
 
+
   // --- Metrics ---
   const totalPeople = selectedOrgId ? filteredPeople.length : '--';
-  
-  // Leadership Bucketing Logic (by staffLevel code)
   const management = filteredPeople.filter(p => {
     const sl = (p.staffLevel || "").toUpperCase();
     return sl.startsWith("M2") || sl.startsWith("M3") || sl.startsWith("E1") || sl.startsWith("E2");
@@ -95,8 +86,6 @@ export default function PeopleDashboard() {
     const sl = (p.staffLevel || "").toUpperCase();
     return sl.startsWith("M1") || sl.startsWith("P4");
   });
-
-  // Leadership Coverage: Total Staff : Total Leaders (Managers + Leads)
   let leadershipCoverage = "—";
   if (selectedOrgId) {
     const denom = management.length + leads.length;
@@ -106,38 +95,47 @@ export default function PeopleDashboard() {
       leadershipCoverage = `${totalPeople} : —`;
     }
   }
-
   const permanent = selectedOrgId ? filteredPeople.filter(p => (p.employeeType || "").toLowerCase() === "permanent").length : '--';
   const temp = selectedOrgId ? filteredPeople.filter(p => (p.employeeType || "").toLowerCase().includes("temp")).length : '--';
   const freelance = selectedOrgId ? filteredPeople.filter(p => (p.employeeType || "").toLowerCase().includes("free")).length : '--';
-
-  // Qualification Risk
   const now = new Date();
-  const expiredQuals = selectedOrgId ? filteredQuals.filter(q => q.renewal && new Date(q.renewal) < now).length : '--';
+
+
+  // --- Expired Qualifications Calculation (using 'renewal' field) ---
+  function isExpiredQualification(qual, today) {
+    if (!qual || !qual.renewal) return false;
+    return qual.renewal < today;
+  }
+  const todayStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+  // Expired qualifications for this org
+  const expiredQuals = filteredQuals.filter(q => isExpiredQualification(q, todayStr));
+  const expiredQualsByPerson = {};
+  expiredQuals.forEach(q => {
+    if (q.personId) {
+      expiredQualsByPerson[q.personId] = (expiredQualsByPerson[q.personId] || 0) + 1;
+    }
+  });
+  const expiredPeopleIds = Object.keys(expiredQualsByPerson);
+
   const expiring6mo = selectedOrgId ? filteredQuals.filter(q => {
-    if (!q.renewal) return false;
-    const d = new Date(q.renewal);
+    if (!q.expiryDate) return false;
+    const d = new Date(q.expiryDate);
     return d > now && d < new Date(now.getFullYear(), now.getMonth() + 6, now.getDate());
   }).length : '--';
-
-  // Department Distribution
   const deptCounts = selectedOrgId ? filteredPeople.reduce((acc, p) => {
     const dept = p.department || "Unassigned";
     acc[dept] = (acc[dept] || 0) + 1;
     return acc;
   }, {}) : {};
-
-  // Compliance Health
   const totalRequiredQuals = filteredQuals.length;
-  const validQuals = filteredQuals.filter(q => q.renewal && new Date(q.renewal) > now).length;
+  const validQuals = filteredQuals.filter(q => q.expiryDate && new Date(q.expiryDate) > now).length;
   const compliance = selectedOrgId && totalRequiredQuals > 0 
     ? Math.round((validQuals / totalRequiredQuals) * 100) 
     : '--';
 
   // --- Tile Render Helpers ---
   const Icon = (Ico, props = {}) => Ico ? <Ico size={28} style={{ marginBottom: 6, color: "#00b4ff", ...props.style }} /> : null;
-
-  // Enhanced tile: accepts onClick and clickable state
   const renderTile = (title, value, sub, icon, extraClass = "", onClick, clickable = false) => (
     <div
       className={`tile${clickable ? " clickable" : ""} ${extraClass}`}
@@ -159,30 +157,52 @@ export default function PeopleDashboard() {
   const sidebar = (
     <div className="sideBlocks">
       <div className="sideBlock">
+        {/* Organisation Selector at the top */}
+        <OrgDropdown orgs={orgs} selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId} />
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            color: '#888',
+            textAlign: 'right',
+            marginTop: 2,
+            marginBottom: 18,
+            letterSpacing: 0.5,
+            width: '100%',
+          }}
+        >
+          ACTIVE SCOPE
+        </div>
+        <div style={{ borderTop: '1px solid #ececf3', margin: '12px 0 16px 0', width: '100%' }} />
         <div className="sideBlock__title">ACTIONS</div>
-        <button className="btn btnPrimary" onClick={() => navigate("/peporg")}>Back to Register</button>
+        <button
+          className="btn btnPrimary"
+          tabIndex={0}
+          onClick={() => {
+            navigate("/peporg/register");
+          }}
+        >
+          Back to Register
+        </button>
         <button className="btn btnPrimary" style={{marginTop: 16}} onClick={() => navigate("/peporg/new")}>New Organisation</button>
       </div>
     </div>
   );
 
+  // --- HEADER STRUCTURAL & STYLING REFACTOR ---
   return (
     <DetailsLayout
-      title="People & Organisation Analytics"
+      title="Workforce Dashboard"
       subtitle="Live workforce and compliance metrics"
       sidebarContent={sidebar}
       onOrgClick={handleOrgClick}
       onPplClick={handlePplClick}
     >
-      <div className="panel__title" style={{ color: "#00b4ff", fontWeight: 700, fontSize: 24, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 32 }}>
-        <span>Workforce Dashboard</span>
-        <OrgDropdown orgs={orgs} selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId} />
-      </div>
-
       {loading ? (
         <div style={{ color: "#fff", fontSize: 22, padding: 40 }}>Initializing Analytics Engine...</div>
       ) : (
-        <div className="tileGrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 28 }}>
+        <div className="tileGrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 28, marginTop: 0 }}>
           {renderTile(
             "Total People",
             totalPeople,
@@ -268,10 +288,21 @@ export default function PeopleDashboard() {
             <div className="tile-sub" style={{ color: "#b3e0ff", fontSize: 15, marginTop: 4 }}>Workforce Type</div>
           </div>
           {/* Qualification Risk */}
-          <div className={`tile ${expiredQuals > 0 ? 'tile-bad' : ''}`} style={{ border: expiredQuals > 0 ? '2px solid #ff3b47' : undefined }}>
-            <div style={{ marginBottom: 2 }}>{Icon(icons.expired, { style: { color: expiredQuals > 0 ? '#ff3b47' : '#00b4ff' } })}</div>
-            <div className="tile-value" style={{ fontSize: 44, fontWeight: 900, color: expiredQuals > 0 ? '#ff3b47' : '#00b4ff' }}>{expiredQuals}</div>
-            <div className="tile-title" style={{ color: expiredQuals > 0 ? '#ff3b47' : '#b3e0ff' }}>Expired Qualifications</div>
+          <div
+            className={`tile ${expiredQuals.length > 0 ? 'tile-bad clickable' : 'clickable'}`}
+            style={{ border: expiredQuals.length > 0 ? '2px solid #ff3b47' : undefined }}
+            onClick={() => {
+              if (selectedOrgId) {
+                navigate(`/peporg/${selectedOrgId}`, { state: { initialTab: 'people', initialFilter: 'Expired' } });
+              }
+            }}
+            tabIndex={0}
+            role="button"
+            aria-disabled={!selectedOrgId}
+          >
+            <div style={{ marginBottom: 2 }}>{Icon(icons.expired, { style: { color: expiredQuals.length > 0 ? '#ff3b47' : '#00b4ff' } })}</div>
+            <div className="tile-value" style={{ fontSize: 44, fontWeight: 900, color: expiredQuals.length > 0 ? '#ff3b47' : '#00b4ff' }}>{expiredQuals.length}</div>
+            <div className="tile-title" style={{ color: expiredQuals.length > 0 ? '#ff3b47' : '#b3e0ff' }}>Expired Qualifications</div>
             <div className="tile-sub">Critical Immediate Action</div>
           </div>
           {renderTile("Compliance Health", compliance, "Valid Qualifications", icons.valid)}
