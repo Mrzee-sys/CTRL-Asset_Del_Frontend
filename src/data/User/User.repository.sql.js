@@ -1,21 +1,19 @@
-// User.repository.sql.js
-// SQL implementation for User repository
+export async function findAll() {
+  return [];
+}
 
-// Example stub
-module.exports = {
-  findAll: async () => {
-    // SQL logic here
-  },
-  findById: async (id) => {
-    // SQL logic here
-  },
-  create: async (data) => {
-    // SQL logic here
-  },
-  update: async (id, data) => {
-    // SQL logic here
-  },
-  delete: async (id) => {
-    // SQL logic here
-  },
-};
+export async function findById() {
+  throw new Error("SQL User repository is not implemented yet.");
+}
+
+export async function create() {
+  throw new Error("SQL User repository is not implemented yet.");
+}
+
+export async function update() {
+  throw new Error("SQL User repository is not implemented yet.");
+}
+
+export async function remove() {
+  throw new Error("SQL User repository is not implemented yet.");
+}

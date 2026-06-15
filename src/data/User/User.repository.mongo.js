@@ -1,21 +1,19 @@
-// User.repository.mongo.js
-// MongoDB implementation for User repository
+export async function findAll() {
+  return [];
+}
 
-// Example stub
-module.exports = {
-  findAll: async () => {
-    // MongoDB logic here
-  },
-  findById: async (id) => {
-    // MongoDB logic here
-  },
-  create: async (data) => {
-    // MongoDB logic here
-  },
-  update: async (id, data) => {
-    // MongoDB logic here
-  },
-  delete: async (id) => {
-    // MongoDB logic here
-  },
-};
+export async function findById() {
+  throw new Error("Mongo User repository is not implemented yet.");
+}
+
+export async function create() {
+  throw new Error("Mongo User repository is not implemented yet.");
+}
+
+export async function update() {
+  throw new Error("Mongo User repository is not implemented yet.");
+}
+
+export async function remove() {
+  throw new Error("Mongo User repository is not implemented yet.");
+}

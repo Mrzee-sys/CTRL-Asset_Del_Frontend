@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Zbot_Fields from "../components/Zbot_Fields";
 import { useNavigate } from "react-router-dom";
 
 const backgroundStyle = {
@@ -32,15 +33,8 @@ const inputStyle = {
 
 const buttonStyle = {
   width: "100%",
-  padding: "10px 0",
   margin: "18px 0 0 0",
-  borderRadius: 6,
-  border: "none",
-  background: "#1976d2",
-  color: "#fff",
-  fontWeight: 600,
-  fontSize: 16,
-  cursor: "pointer",
+  borderRadius: 8,
 };
 
 export default function LoginForm() {
@@ -85,25 +79,26 @@ export default function LoginForm() {
     <div style={backgroundStyle}>
       <form style={frameStyle} onSubmit={handleSubmit}>
         <h2 style={{ marginBottom: 24 }}>Login</h2>
-        <input
-          style={inputStyle}
-          type="text"
-          placeholder="Username"
+        <Zbot_Fields
+          label="Username"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={e => setUsername(e.target.value)}
+          placeholder="Username"
+          className="value"
           required
         />
-        <input
-          style={inputStyle}
-          type="password"
-          placeholder="Password"
+        <Zbot_Fields
+          label="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Password"
+          className="value"
+          type="password"
           required
         />
         {error && <div style={{ color: "#b71c1c", marginBottom: 8 }}>{error}</div>}
-        <button style={buttonStyle} type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Signing in..." : "Login"}
+        <button className="btn-electric btnPrimary" style={buttonStyle} type="submit" disabled={isSubmitting}>
+          <span>{isSubmitting ? "Signing in..." : "Login"}</span>
         </button>
       </form>
     </div>

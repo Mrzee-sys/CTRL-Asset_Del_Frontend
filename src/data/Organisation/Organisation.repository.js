@@ -1,17 +1,41 @@
-// Organisation.repository.js - The ESM Bridge
-import * as mongoRepo from './Organisation.repository.mongo';
-import * as sqlRepo from './Organisation.repository.sql';
+import * as mongoRepo from "./Organisation.repository.mongo.js";
+import * as sqlRepo from "./Organisation.repository.sql.js";
 
-// Vite handles environment variables differently than standard Node
-const useSql = import.meta.env.VITE_USE_SQL === 'true';
-const activeRepo = useSql ? sqlRepo : mongoRepo;
+const ACTIVE_DB =
+	(typeof import.meta !== "undefined" &&
+		import.meta.env &&
+		import.meta.env.VITE_ACTIVE_DB) ||
+	"mongo";
 
-// Named exports that your Dashboard is looking for
-export const findAll = activeRepo.findAll;
-export const findById = activeRepo.findById;
-export const create = activeRepo.create;
-export const update = activeRepo.update;
-export const remove = activeRepo.remove;
+function repo() {
+	if (ACTIVE_DB === "sql") return sqlRepo;
+	return mongoRepo;
+}
 
-// Default export as a fallback
-export default activeRepo;
+export async function findAll(params) {
+	return repo().findAll(params);
+}
+
+export async function findById(id) {
+	return repo().findById(id);
+}
+
+export async function create(data) {
+	return repo().create(data);
+}
+
+export async function update(id, data) {
+	return repo().update(id, data);
+}
+
+export async function remove(id) {
+	return repo().remove(id);
+}
+
+export default {
+	findAll,
+	findById,
+	create,
+	update,
+	remove,
+};

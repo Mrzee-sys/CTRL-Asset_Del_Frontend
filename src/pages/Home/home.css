@@ -18,10 +18,16 @@
     --icon-bg-hover: rgba(0, 191, 255, 0.15);
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%;
+    height: 100%;
+    background-color: #f8fafc; /* Standard background behind the transparent shell */
+}
 
 .shell {
-    height: 100%;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     background: var(--bg);
@@ -34,87 +40,142 @@
     to { transform: rotate(360deg); }
 }
 
-/* ✅ Electric Blue Pulse Animation (For the Glow) */
+/* ✅ Electric Blue Pulse Animation */
 @keyframes electricPulse {
     0% { box-shadow: 0 0 0 0 var(--electric-pulse); }
     70% { box-shadow: 0 0 0 15px rgba(0, 191, 255, 0); }
     100% { box-shadow: 0 0 0 0 rgba(0, 191, 255, 0); }
 }
 
-/* Top bar */
+/* Top bar - Full Width */
 .topbar {
-    height: 56px;
+    height: 64px;
     background: linear-gradient(90deg, var(--purple-dark), var(--purple));
     color: #fff;
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 40px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    width: 100%;
 }
 
 .topbar__title {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 800;
     letter-spacing: 1px;
 }
 
-/* Status Dot */
-.status-indicator {
+.topbar__actions {
     margin-left: auto;
     display: flex;
     align-items: center;
+    gap: 14px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
 }
 
-.pulse-dot {
-    width: 8px;
-    height: 8px;
-    background: #22c55e;
-    border-radius: 50%;
-    box-shadow: 0 0 8px #22c55e;
+.settings-gear-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.09);
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Grid & Tiles */
-.content { flex: 1; padding: 40px 20px; display: flex; justify-content: center; }
-.content__inner { width: 100%; max-width: 1200px; }
+.settings-gear-btn img {
+    width: 20px;
+    height: 20px;
+}
+
+.settings-gear-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(0, 191, 255, 0.18);
+    box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2);
+}
+
+.settings-gear-btn:active {
+    transform: translateY(0);
+}
+
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #22c55e;
+}
+
+/* --- THE FIX: CONTENT AREA EXPANSION --- */
+.content { 
+    flex: 1; 
+    padding: 40px; 
+    display: flex; 
+    justify-content: center; /* Centers the content inner */
+    width: 100%;
+}
+
+.content__inner { 
+    width: 100%; 
+    max-width: 95%; /* Removes the 1200px restriction to fill your screen width */
+}
+
+.headline {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+}
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    gap: 20px;
+    /* Uses auto-fit to dynamically fill rows. minmax(450px) ensures buttons are wide enough. */
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 32px;
+    width: 100%;
+    margin-top: 20px;
 }
 
-/* ✅ THE TILE: MAGIC ORBITAL BORDER LOGIC */
+/* --- THE TILE: BUTTON EXPANSION --- */
 .tile {
     position: relative;
-    border: none; /* Removed standard border to use the magic border instead */
+    border: none;
     border-radius: var(--radius);
-    padding: 24px;
+    padding: 32px; /* Increased padding for internal space */
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
     cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
     text-align: left;
     color: var(--tileText);
-    background: #111827; /* Solid base background */
-    overflow: hidden; /* Clips the spinning beam */
+    background: #111827;
+    overflow: hidden;
     z-index: 1;
+    width: 100%; 
+    min-height: 140px; /* Prevents buttons from looking flat or squashed vertically */
 }
 
-/* 1. The Spinning "Electric Beam" (Hidden by default) */
+/* 1. The Spinning "Electric Beam" */
 .tile::before {
     content: '';
     position: absolute;
-    width: 200%; /* Wider than the tile to ensure corners are covered */
+    width: 200%;
     height: 200%;
     background-image: conic-gradient(
         transparent, 
         transparent, 
         transparent, 
-        var(--electric-blue) /* This is the 'dot' */
+        var(--electric-blue)
     );
     top: -50%;
     left: -50%;
@@ -124,11 +185,11 @@
     z-index: -2;
 }
 
-/* 2. The Inner Card Mask (Covers the middle of the spinning beam) */
+/* 2. The Inner Card Mask */
 .tile::after {
     content: '';
     position: absolute;
-    inset: 2px; /* This defines the thickness of the magic border */
+    inset: 2px;
     background: linear-gradient(135deg, var(--tile), var(--tile2));
     border-radius: calc(var(--radius) - 2px);
     z-index: -1;
@@ -136,39 +197,39 @@
 
 /* ✅ HOVER STATES */
 .tile:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px) scale(1.02);
     animation: electricPulse 1.5s infinite;
-    box-shadow: 0 0 30px var(--electric-glow);
+    box-shadow: 0 15px 45px var(--electric-glow);
 }
 
-/* Reveal the beam on hover */
 .tile:hover::before {
     opacity: 1;
 }
 
-/* Icon & Text must stay above the mask */
 .tile > * {
     position: relative;
     z-index: 2;
 }
 
 .tile__icon {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     background: var(--icon-bg);
-    border-radius: 12px;
+    border-radius: 16px;
     display: grid;
     place-items: center;
     transition: all 0.3s ease;
+    flex-shrink: 0; /* Prevents icon from shrinking in wide buttons */
 }
 
 .tile:hover .tile__icon {
     background: var(--icon-bg-hover);
+    transform: rotate(-5deg);
 }
 
 .tile__icon svg {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     color: #fff;
     transition: color 0.3s ease;
 }
@@ -178,31 +239,38 @@
     filter: drop-shadow(0 0 8px var(--electric-blue));
 }
 
+.tile__info {
+    flex: 1;
+}
+
 .tile__metrics {
-    margin-top: 8px;
-    font-size: 11px;
+    margin-top: 12px;
+    font-size: 13px;
     font-weight: 800;
     color: var(--electric-blue);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
 }
 
+/* Footer - Full Width */
 .footer {
-    height: 40px;
+    height: 48px;
     background: var(--purple-dark);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
-    font-size: 12px;
+    padding: 0 40px;
+    font-size: 13px;
+    width: 100%;
 }
+
 /* ✅ Electric Blue Checkbox Styling */
 input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border: 2px solid var(--tileSub);
     border-radius: 4px;
     cursor: pointer;
@@ -215,15 +283,14 @@ input[type="checkbox"] {
 input[type="checkbox"]:checked {
     background-color: var(--electric-blue);
     border-color: var(--electric-blue);
-    box-shadow: 0 0 10px var(--electric-glow);
+    box-shadow: 0 0 12px var(--electric-glow);
 }
 
-/* Adds the 'check' mark icon when checked */
 input[type="checkbox"]:checked::after {
     content: '✔';
     position: absolute;
     color: #111827;
-    font-size: 14px;
-    left: 3px;
-    top: -1px;
+    font-size: 16px;
+    left: 4px;
+    top: -2px;
 }

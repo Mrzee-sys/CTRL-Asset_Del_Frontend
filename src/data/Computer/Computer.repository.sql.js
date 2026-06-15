@@ -1,22 +1,23 @@
-console.log("Hello World!")// src/data/Servers/server.repository.mongo.js
+const API_BASE =
+    (typeof import.meta !== "undefined" &&
+        import.meta.env &&
+        import.meta.env.VITE_API_BASE) ||
+    "http://localhost:5000";
 
-const API_BASE = "http://localhost:5000"; // Ensure this matches your backend port
-const BASE_URL = `${API_BASE}/api/servers`;
+const BASE_URL = `${API_BASE}/api/sql/computers`;
 
-export const mongoServerRepository = {
+export const sqlComputerRepository = {
     async list(params = {}) {
         const res = await fetch(BASE_URL);
         if (!res.ok) return { rows: [], total: 0 };
         const data = await res.json();
         return { rows: data, total: data.length };
     },
-
     async getById(id) {
         const res = await fetch(`${BASE_URL}/${id}`);
-        if (!res.ok) throw new Error("Server not found");
+        if (!res.ok) throw new Error("Computer not found");
         return res.json();
     },
-
     async create(data) {
         const res = await fetch(BASE_URL, {
             method: "POST",
@@ -25,7 +26,6 @@ export const mongoServerRepository = {
         });
         return res.json();
     },
-
     async update(id, data) {
         const res = await fetch(`${BASE_URL}/${id}`, {
             method: "PUT",
@@ -33,9 +33,5 @@ export const mongoServerRepository = {
             body: JSON.stringify(data),
         });
         return res.json();
-    },
-
-    async remove(id) {
-        await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
     }
 };

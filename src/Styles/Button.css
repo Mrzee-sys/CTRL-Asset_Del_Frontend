@@ -1,46 +1,293 @@
+/* --- 1. KEYFRAME ANIMATIONS --- */
 
-.btn {
+@keyframes electric-dot-run {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes flicker {
+  0%, 10%, 30%, 100% {
+    border: 2px solid rgb(1, 235, 252);
+    box-shadow: 0px 0px 20px rgb(1, 235, 252), inset 0px 0px 8px rgb(1, 235, 252), 0px 0px 4px rgb(255, 255, 255);
+  }
+  5%, 25% { border: 2px solid transparent; box-shadow: none; }
+}
+
+@keyframes iconflicker {
+  0%, 10%, 30%, 100% { opacity: 1; }
+  5%, 25% { opacity: 0.3; }
+}
+
+
+/* --- 2. STANDARD ACTION BUTTONS (.btn-electric) --- */
+
+.btn-electric {
+  --btn-dot: #00FFFF;
+  --btn-glow: rgba(0, 255, 255, 0.45);
+  --btn-bg: linear-gradient(135deg, #6a5aa6 0%, #4c3d8a 100%);
+  --btn-fg: #ffffff;
+
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 16px;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
   border-radius: 12px;
   border: none;
-  padding: 0 24px;
+  padding: 0 20px;
   height: 44px;
-  background: #ede9fe;
-  color: #3b2177;
-  box-shadow: 0 2px 8px rgba(106,90,166,0.08);
+  background: var(--btn-bg);
+  color: var(--btn-fg) !important;
   cursor: pointer;
-  transition: background 0.18s, box-shadow 0.18s, color 0.18s;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn:active {
-  background: #d1c4e9;
+.btn-electric:hover::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: -150%;
+  background: conic-gradient(transparent 0deg, var(--btn-dot) 10deg, transparent 35deg);
+  animation: electric-dot-run 3.5s linear infinite;
 }
 
-.btnPrimary {
-  background: linear-gradient(90deg, #6a5aa6 0%, #8f5eea 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(106,90,166,0.13);
+.btn-electric::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 2px;
+  background: var(--btn-bg);
+  border-radius: 10px;
 }
 
-.btnPrimary:active {
-  background: #6a5aa6;
+.btn-electric span, 
+.btn-electric svg {
+  position: relative;
+  z-index: 10 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
 }
 
-.btnGhost {
-  background: #fff;
-  color: #6a5aa6;
-  border: 1.5px solid #e2e8f0;
+.btn-electric:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px var(--btn-glow), 0 0 30px rgba(0, 255, 255, 0.2);
 }
 
-.btnGhost:active {
-  background: #ede9fe;
+
+/* --- 3. UNIFIED SQUARE FLICKER ACTIONS (SIDEBAR) --- */
+
+.action-flicker-square {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(1, 235, 252, 0.4); 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: rgba(30, 21, 64, 0.75);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 0 0 auto;
 }
 
-.btn .icon {
-  font-size: 18px;
-  margin-right: 6px;
+.action-flicker-square:hover {
+  transform: scale(1.1);
+  border: 2px solid rgb(1, 235, 252);
+  animation: flicker 2s linear infinite;
+  z-index: 10;
+}
+
+.flicker-icon-wrapper {
+  color: rgba(1, 235, 252, 0.8); 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5 !important;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.action-flicker-square:hover .flicker-icon-wrapper {
+  color: rgb(1, 235, 252);
+  animation: iconflicker 2s linear infinite;
+}
+
+.flicker-input-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 12;
+}
+
+/* --- THE FIX: ADJUST WIDTH HERE TO SHRINK LENGTH --- */
+.panelSticky select {
+  width: 250px !important; /* Shrunk from full width */
+  height: 35px !important;
+  margin-bottom: 10px;
+  flex: none !important;
+}
+
+
+/* --- 4. DASHBOARD TILES & CENTER ICONS --- */
+
+.tileGrid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  grid-template-rows: 300px 300px !important;
+  gap: 24px !important;
+  width: 100%;
+}
+
+.tile.statCard {
+  background: linear-gradient(135deg, #1e1540 0%, #2d254c 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  height: 300px !important;
+  min-height: 300px !important;
+  max-height: 300px !important;
+  position: relative !important;
+  overflow: hidden;
+  isolation: isolate; 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.tile-watermark {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 1 !important; 
+  opacity: 0.6 !important; 
+  color: #ffffff !important;
+  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.6)) !important;
+  pointer-events: none;
+}
+
+.tile.statCard:hover {
+  transform: translateY(-5px);
+  border: 2px solid #00FFFF !important;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+}
+
+
+/* --- 5. TILE INTERNAL ALIGNMENT (THE MAX SPACE FIX) --- */
+
+.tile-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  z-index: 5;
+  /* MINIMAL PADDING: Pushes titles up and footers down */
+  padding: 10px 20px 6px 20px; 
+}
+
+.tile-body {
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 0;
+  gap: 6px; /* Restored healthy gap for readability */
+}
+
+.tile-title {
+  font-size: 1.05rem; /* Bumped up */
+  font-weight: 800;
+  margin-bottom: 4px;
+  color: #b3e0ff;
+  letter-spacing: 0.3px;
+}
+
+.breakdownList-row {
+  font-size: 0.92rem; /* Bumped up */
+  line-height: 1.25;
+  margin-bottom: 4px;
+}
+
+.tile-footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(0, 255, 255, 0.3) !important;
+  padding-top: 8px; /* Pushed footer lower */
+  padding-bottom: 4px;
+  width: 100%;
+}
+
+/* --- TILE-SPECIFIC BALANCING --- */
+
+/* Tile 1: Prominent Risk Header */
+.statCard:nth-child(1) [style*="fontSize: 30"] {
+  font-size: 26px !important;
+  margin-bottom: 2px;
+  font-weight: 900;
+}
+
+/* Tile 6: Comfortable fit for 7 items with the new space */
+.statCard:last-child .tile-body {
+  gap: 3px;
+}
+
+.statCard:last-child .breakdownList-row {
+  margin-bottom: 2px !important;
+  font-size: 0.85rem !important; /* Larger than previous 'compact' versions */
+  line-height: 1.15;
+}
+
+.animate-gradient-text {
+  background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #3b82f6);
+  background-size: 200% auto;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 10s ease infinite;
+}
+
+.cr-title-text.animate-gradient-text {
+  color: transparent !important;
+}
+
+.cr-header-slim {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 32px 24px !important;
+  margin-bottom: 20px !important;
+  min-height: 60px !important;
+  background: linear-gradient(90deg, #ffffff 0%, #f3f0ff 100%) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.cr-header-slim::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6f42c1 0%, #00d4ff 100%);
+  pointer-events: none;
+}
+
+.panelSticky .org-selector,
+.panelSticky .org-selector select,
+.panelSticky select#org-dropdown {
+  width: 400px !important;
+  max-width: 400px !important;
 }

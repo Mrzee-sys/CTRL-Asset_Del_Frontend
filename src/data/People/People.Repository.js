@@ -4,6 +4,15 @@
 // ---------------------------------------------------------
 
 import { mongoPersonRepository } from "./person.repository.mongo";
+import { sqlPersonRepository } from "./People.repository.sql";
+
+const ACTIVE_DB =
+    (typeof import.meta !== "undefined" &&
+        import.meta.env &&
+        import.meta.env.VITE_ACTIVE_DB) ||
+    "mongo";
+
+const repo = ACTIVE_DB === "sql" ? sqlPersonRepository : mongoPersonRepository;
 
 // Helper: flatten address object to flat fields
 function flattenAddress(person) {
@@ -36,12 +45,6 @@ function inflateAddress(person) {
     }
     return person;
 }
-
-/**
- * Currently hard-wired to Mongo. 
- * Once you create person.repository.sql.js, we can re-enable the switcher.
- */
-const repo = mongoPersonRepository;
 
 // ---------------------------------------------------------
 // Public API (These names match your Peoplecards.jsx imports)

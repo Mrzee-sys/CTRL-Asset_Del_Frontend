@@ -97,12 +97,23 @@
 
 /* Table */
 .cr-tableWrap {
-    margin-top: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
     background: var(--cr-card);
     border: 1px solid var(--cr-border);
     border-radius: var(--cr-radius);
     box-shadow: var(--cr-shadow);
-    overflow: auto;
+    overflow: hidden;
+    text-align: left;
+}
+
+.cr-tableScroll {
+    width: 100%;
+    max-height: 58vh;
+    padding-bottom: 8px;
+    overflow-x: auto;
+    overflow-y: auto;
 }
 
 .cr-table {

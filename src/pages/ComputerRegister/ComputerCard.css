@@ -293,9 +293,14 @@
     min-height: 0;
 }
 
-    .assetGrid > .panel {
+    .assetGrid > section.panel {
         height: 100%;
         overflow: auto;
+    }
+
+    .assetGrid > aside.panelSticky {
+        height: auto;
+        overflow: visible;
     }
 
 /* =========================================================
@@ -425,15 +430,18 @@ textarea.value {
    ========================================================= */
 .sideBlocks {
     display: grid;
-    gap: 10px;
+    gap: 1rem;
 }
 
 .sideBlock {
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 10px;
+    padding: 16px 20px;
     background: rgba(91, 75, 214, 0.045);
     box-shadow: 0 12px 28px rgba(91, 75, 214, 0.14);
+    height: auto;
+    max-height: none;
+    overflow: visible;
 }
 
 .sideBlock__title {
@@ -446,6 +454,142 @@ textarea.value {
 .sideBlock__text {
     font-size: 11px;
     color: var(--muted);
+}
+
+.sideBlock .summary {
+    display: grid;
+    gap: 10px;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+}
+
+.sideBlock .summaryRow {
+    display: grid;
+    grid-template-columns: minmax(105px, auto) 1fr;
+    align-items: center;
+    column-gap: 10px;
+    line-height: 1.4;
+}
+
+.summaryRow--support {
+    align-items: flex-start;
+}
+
+.summaryLabel {
+    font-weight: 650;
+    color: #1f2d4f;
+}
+
+.summaryLabel--emphasis {
+    font-weight: 800;
+}
+
+.summaryValue {
+    color: #1b2140;
+}
+
+.sideBlock--vitality .summary {
+    gap: 8px;
+}
+
+.sideBlock--vitality .summaryRow {
+    padding: 4px 0;
+}
+
+.sideBlock--vitality .summaryLabel,
+.sideBlock--vitality .summaryValue,
+.sideBlock--vitality .summaryValueText,
+.sideBlock--vitality .sideBlock__text,
+.sideBlock--vitality .warrantyLink.warrantyLink--inline {
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.sideBlock--vitality .summaryLabel {
+    font-weight: 800;
+}
+
+.sideBlock--vitality .summaryValue,
+.sideBlock--vitality .summaryValueText,
+.sideBlock--vitality .warrantyLink.warrantyLink--inline,
+.sideBlock--vitality .sideBlock__text {
+    font-weight: 400;
+}
+
+.summaryValueText--regular {
+    font-weight: 400;
+}
+
+.summaryRow--warning .summaryValue {
+    display: flex;
+    align-items: center;
+}
+
+.warningTooltipWrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.warningIcon {
+    color: #ff4d4f;
+    width: 18px;
+    height: 18px;
+    cursor: help;
+}
+
+.warningTooltipText {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    min-width: 250px;
+    max-width: 300px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #1f2333;
+    color: #f6f8ff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.warningTooltipText::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translateX(-50%) rotate(45deg);
+    background: #1f2333;
+}
+
+.warningTooltipWrap:hover .warningTooltipText,
+.warningTooltipWrap:focus-within .warningTooltipText {
+    opacity: 1;
+    visibility: visible;
+}
+
+.warrantyLink.warrantyLink--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    color: #4f63ff;
+    line-height: 1.3;
+}
+
+.warrantyLink.warrantyLink--inline:hover {
+    text-decoration: underline;
 }
 
 /* =========================================================
@@ -529,8 +673,10 @@ textarea.value {
     gap: 10px;
 }
 
-    .actionBlock__buttons .btn {
+    .actionBlock__buttons .btn,
+    .actionBlock__buttons .btn-electric {
         width: 100%;
+        box-sizing: border-box;
     }
 /* =========================================================
    RESPONSIVE

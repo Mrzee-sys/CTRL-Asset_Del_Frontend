@@ -1,13 +1,14 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import RegisterLayout from "../RegisterLayout";
 import { FiPlus, FiSearch } from "react-icons/fi";
-import { fetchOrgs } from "./peporgApi";
+import { fetchOrgById, fetchOrgs } from "./peporgApi";
 import "../../styles/DetailPageLayout.css";
 import "../../styles/Register.css";
 
 export default function PeporgRegister() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [q, setQ] = useState("");
     const [rows, setRows] = useState([]);
     const [page, setPage] = useState(1);
@@ -17,6 +18,13 @@ export default function PeporgRegister() {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState("");
     const [debouncedQ, setDebouncedQ] = useState("");
+
+    const searchParams = new URLSearchParams(location.search || "");
+    const scopedOrgIdFromQuery = searchParams.get("scopedOrgId") || "";
+    const scopedOrgNameFromQuery = searchParams.get("scopedOrgName") || "";
+
+    const scopedOrgId = scopedOrgIdFromQuery || location.state?.scopedOrgId || "";
+    const scopedOrgName = scopedOrgNameFromQuery || location.state?.scopedOrgName || "";
 
     useEffect(() => {
         const t = setTimeout(() => setDebouncedQ(q.trim()), 250);
@@ -29,6 +37,17 @@ export default function PeporgRegister() {
             setErr("");
             setLoading(true);
             try {
+                if (scopedOrgId) {
+                    const org = await fetchOrgById(scopedOrgId);
+                    if (!alive) return;
+                    setRows(org ? [org] : []);
+                    setTotal(org ? 1 : 0);
+                    setTotalPages(1);
+                    setPage(1);
+                    if (scopedOrgName && !q) setQ(scopedOrgName);
+                    return;
+                }
+
                 const data = await fetchOrgs({ search: debouncedQ, page, limit });
                 if (!alive) return;
                 setRows(Array.isArray(data?.rows) ? data.rows : []);
@@ -48,13 +67,13 @@ export default function PeporgRegister() {
         return () => {
             alive = false;
         };
-    }, [debouncedQ, page, limit]);
+    }, [debouncedQ, page, limit, scopedOrgId, scopedOrgName]);
 
     const fmtDateTime = useMemo(() => {
         return (d) => {
-            if (!d) return "—";
+            if (!d) return "�";
             const dt = new Date(d);
-            if (Number.isNaN(dt.getTime())) return "—";
+            if (Number.isNaN(dt.getTime())) return "�";
             return dt.toLocaleString();
         };
     }, []);
@@ -66,26 +85,28 @@ export default function PeporgRegister() {
     const toolbarContent = (
         <>
             {/* UPDATED: Changed class to btn btnPrimary to trigger magic border */}
-            <button className="btn btnPrimary" onClick={() => navigate("/peporg/new") } type="button">
-                <FiPlus /> Add Organisation
+            <button className="btn-electric btnPrimary" onClick={() => navigate("/peporg/new") } type="button">
+                <span><FiPlus /> Add Organisation</span>
             </button>
             <div className="registerSearch">
                 <input
                     className="value registerSearchInput"
-                    placeholder="Search organisations..."
+                    placeholder={scopedOrgId ? "Scoped to selected organisation" : "Search organisations..."}
                     value={q}
+                    disabled={Boolean(scopedOrgId)}
                     onChange={(e) => {
+                        if (scopedOrgId) return;
                         setQ(e.target.value);
                         setPage(1);
                     }}
                 />
                 <button
-                    className="btn btnGhost"
+                    className="btn-electric btnGhost"
                     type="button"
                     onClick={() => setQ("")}
-                    disabled={!q.trim()}
+                    disabled={!q.trim() || Boolean(scopedOrgId)}
                 >
-                    Clear
+                    <span>Clear</span>
                 </button>
             </div>
         </>
@@ -96,20 +117,20 @@ export default function PeporgRegister() {
         <div style={{ display: "flex", gap: 10, marginTop: 12, justifyContent: "flex-end" }}>
             {/* UPDATED: Changed to btnPrimary so they also glow/trace */}
             <button
-                className="btn btnPrimary"
+                className="btn-electric btnGhost"
                 type="button"
                 onClick={() => setPage((p) => p - 1)}
-                disabled={!canPrev}
+                disabled={!canPrev || Boolean(scopedOrgId)}
             >
-                ← Prev
+                <span>? Prev</span>
             </button>
             <button
-                className="btn btnPrimary"
+                className="btn-electric btnGhost"
                 type="button"
                 onClick={() => setPage((p) => p + 1)}
-                disabled={!canNext}
+                disabled={!canNext || Boolean(scopedOrgId)}
             >
-                Next →
+                <span>Next ?</span>
             </button>
         </div>
     );
@@ -117,7 +138,7 @@ export default function PeporgRegister() {
     return (
         <RegisterLayout
             title="People & Organisations"
-            subtitle="Organisations • Search and manage organisations"
+            subtitle="Organisations � Search and manage organisations"
             totalCount={total}
             toolbarContent={toolbarContent}
         >
@@ -125,7 +146,7 @@ export default function PeporgRegister() {
                 <div className="registerStatusRow registerError">{err}</div>
             ) : null}
             {loading ? (
-                <div className="registerStatusRow">Loading…</div>
+                <div className="registerStatusRow">Loading�</div>
             ) : null}
             <div className="registerTableWrap">
                 <table className="registerTable">
@@ -158,12 +179,12 @@ export default function PeporgRegister() {
                                     }
                                 >
                                     <td className="registerStrong">
-                                        {o.orgName || "—"}
+                                        {o.orgName || "�"}
                                     </td>
-                                    <td>{o.tradingAs || "—"}</td>
-                                    <td>{o.contactNumber || "—"}</td>
-                                    <td>{o.vatTaxNumber || "—"}</td>
-                                    <td>{o.companyRegNumber || "—"}</td>
+                                    <td>{o.tradingAs || "�"}</td>
+                                    <td>{o.contactNumber || "�"}</td>
+                                    <td>{o.vatTaxNumber || "�"}</td>
+                                    <td>{o.companyRegNumber || "�"}</td>
                                     <td>{fmtDateTime(o.updatedAt)}</td>
                                 </tr>
                             ))

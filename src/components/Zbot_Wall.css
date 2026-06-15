@@ -1,0 +1,76 @@
+/* Zbot_Wall Styling */
+
+.zbot-wall-wrapper {
+  position: absolute;
+  left: 0;
+  width: 56px;
+  height: 36px;
+  pointer-events: none;
+  z-index: 100;
+  /* Adjust translateX to ensure hands overlap your neon/cyan glow line perfectly */
+  transform: translateX(-38px);
+  /* Smooth slide when picking a new random vertical position */
+  transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
+
+/* Fall physics animation applied when Zbot reappears */
+.zbot-falling {
+  animation: zbotSlideInFromTop 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes zbotSlideInFromTop {
+  0% {
+    transform: translateX(-38px) translateY(-100px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-38px) translateY(10px); /* Overshoot bounce */
+  }
+  100% {
+    transform: translateX(-38px) translateY(0);
+    opacity: 1;
+  }
+}
+
+.zbot-wall-svg {
+  display: block;
+  /* Rotate -90deg so he peeks from the vertical wall */
+  transform: rotate(-90deg) scale(1.1); 
+  filter: drop-shadow(0 0 8px #00f6ffcc);
+  overflow: visible;
+}
+
+/* Eye/Input Focus Shield - Hides Zbot instantly when typing */
+body:has(.imwatching-input:focus) .zbot-wall-wrapper {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: opacity 0.05s ease-out; 
+}
+
+@keyframes zbotSidewaysWave {
+  0% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-30deg) translateX(-6px); }
+  50% { transform: rotate(20deg) translateX(-6px); }
+  75% { transform: rotate(-30deg) translateX(-6px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+.zbot-waving-hand {
+  transform-origin: 10px 32px;
+  animation: zbotSidewaysWave 1.2s ease-in-out;
+}
+
+/* Modal and Scroll Clean-up */
+.modal-scroll-area {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 0px;
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
+}
+
+.modal-scroll-area::-webkit-scrollbar,
+.inner-scroll-container::-webkit-scrollbar {
+  display: none;
+}

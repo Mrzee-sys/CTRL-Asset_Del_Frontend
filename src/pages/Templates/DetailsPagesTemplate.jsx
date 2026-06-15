@@ -1,6 +1,7 @@
-﻿import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/PageHeader";
+import Zbot_Fields from "../../components/Zbot_Fields";
 
 // IMPORTANT:
 // - This is a TEMPLATE file for cloning.
@@ -23,7 +24,7 @@ export default function DetailPageTemplate() {
     const fmt = useMemo(() => {
                     <PageHeader
                         title={isCreate ? "Untitled Record" : (record?.computerName || "Computer Details")}
-                        subtitle={`New Module • ${isCreate ? "Creating new record" : "Viewing record"}`}
+                        subtitle={`New Module � ${isCreate ? "Creating new record" : "Viewing record"}`}
                         pillText={isCreate ? "Active" : (record?.status || "Active")}
                         totalCount={undefined}
                         pageInfo={undefined}
@@ -54,7 +55,7 @@ export default function DetailPageTemplate() {
                 </header>
 
                 {/* =====================================================
-           BODY (TEMPLATE) — DO NOT REARRANGE
+           BODY (TEMPLATE) � DO NOT REARRANGE
            ===================================================== */}
                 <main className="assetGrid">
 
@@ -68,22 +69,22 @@ export default function DetailPageTemplate() {
                         <div className="fieldGrid">
                             <div className="field">
                                 <div className="label">Field 1</div>
-                                <input className="value" placeholder="Value..." />
+                                <Zbot_Fields className="value" placeholder="Value..." label="Field 1" name="field1" />
                             </div>
 
                             <div className="field">
                                 <div className="label">Field 2</div>
-                                <input className="value" placeholder="Value..." />
+                                <Zbot_Fields className="value" placeholder="Value..." label="Field 2" name="field2" />
                             </div>
 
                             <div className="field">
                                 <div className="label">Field 3</div>
-                                <input className="value" placeholder="Value..." />
+                                <Zbot_Fields className="value" placeholder="Value..." label="Field 3" name="field3" />
                             </div>
 
                             <div className="field">
                                 <div className="label">Field 4</div>
-                                <input className="value" placeholder="Value..." />
+                                <Zbot_Fields className="value" placeholder="Value..." label="Field 4" name="field4" />
                             </div>
                         </div>
                     </section>
@@ -98,27 +99,27 @@ export default function DetailPageTemplate() {
                         <div className="sideBlocks">
                             <div className="sideBlock">
                                 <div className="sideBlock__title">Quick Summary</div>
-                                <div className="sideBlock__text">Put summary rows here…</div>
+                                <div className="sideBlock__text">Put summary rows here�</div>
                             </div>
 
                             <div className="sideBlock">
                                 <div className="sideBlock__title">Block 2</div>
-                                <div className="sideBlock__text">Any supporting info…</div>
+                                <div className="sideBlock__text">Any supporting info�</div>
                             </div>
 
                             <div className="sideBlock">
                                 <div className="sideBlock__title">Block 3</div>
-                                <div className="sideBlock__text">Links, tags, relationships…</div>
+                                <div className="sideBlock__text">Links, tags, relationships�</div>
                             </div>
 
                             {/* Actions (always at bottom) */}
                             <div className="actionBlock">
                                 <div className="actionBlock__buttons">
-                                    <button className="btn btnPrimary" type="button">
-                                        Save
+                                    <button className="btn-electric btnPrimary" type="button">
+                                        <span>Save</span>
                                     </button>
-                                    <button className="btn btnPrimary" type="button" onClick={() => navigate(-1)}>
-                                        Cancel
+                                    <button className="btn-electric btnPrimary" type="button" onClick={() => navigate(-1)}>
+                                        <span>Cancel</span>
                                     </button>
                                 </div>
                             </div>

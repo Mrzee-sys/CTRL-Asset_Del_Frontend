@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Zbot_Fields from "../../components/Zbot_Fields";
 import { useParams, useNavigate } from "react-router-dom";
 import "../../Styles/DetailPageLayout.css";
 import "../../Styles/IncidentTabs.css";
@@ -136,8 +137,8 @@ export default function IncidentCard() {
 
                 <header className="assetHeader">
                     <div className="assetHeader__nav">
-                        <button className="btn btnGhost" onClick={() => navigate(-1)} type="button">
-                            ← Back
+                        <button className="btn-electric btnGhost" onClick={() => navigate(-1)} type="button">
+                            <span>← Back</span>
                         </button>
                     </div>
 
@@ -181,7 +182,7 @@ export default function IncidentCard() {
                         <div className="panel__title">Incident Information</div>
                         <div className="tabBar" style={{ background: 'transparent', borderRadius: 12, padding: 0, marginBottom: 18, gap: 10 }}>
                             <button
-                                className={`tabBtn${activeTab === "details" ? " active" : ""}`}
+                                className={`btn-electric btnGhost tabBtn${activeTab === "details" ? " active" : ""}`}
                                 style={{
                                     borderRadius: 8,
                                     background: activeTab === "details" ? 'var(--primary, #5b4bd6)' : '#f6f7fb',
@@ -197,10 +198,10 @@ export default function IncidentCard() {
                                 }}
                                 onClick={() => setActiveTab("details")}
                             >
-                                Details
+                                <span>Details</span>
                             </button>
                             <button
-                                className={`tabBtn${activeTab === "corrective" ? " active" : ""}`}
+                                className={`btn-electric btnGhost tabBtn${activeTab === "corrective" ? " active" : ""}`}
                                 style={{
                                     borderRadius: 8,
                                     background: activeTab === "corrective" ? 'var(--primary, #5b4bd6)' : '#f6f7fb',
@@ -216,7 +217,7 @@ export default function IncidentCard() {
                                 }}
                                 onClick={() => setActiveTab("corrective")}
                             >
-                                Corrective Action
+                                <span>Corrective Action</span>
                             </button>
                         </div>
                         <div className="tabPanel">
@@ -259,12 +260,22 @@ export default function IncidentCard() {
                                         </select>
                                     </div>
                                     <div className="field">
-                                        <div className="label">Date Reported:</div>
-                                        <input className="value" type="date" value={form.dateReported} onChange={e => setField("dateReported", e.target.value)} />
+                                        <Zbot_Fields
+                                            label="Date Reported"
+                                            type="date"
+                                            value={form.dateReported}
+                                            onChange={e => setField("dateReported", e.target.value)}
+                                            className="value"
+                                        />
                                     </div>
                                     <div className="field">
-                                        <div className="label">Incident Date:</div>
-                                        <input className="value" type="date" value={form.incidentDate} onChange={e => setField("incidentDate", e.target.value)} />
+                                        <Zbot_Fields
+                                            label="Incident Date"
+                                            type="date"
+                                            value={form.incidentDate}
+                                            onChange={e => setField("incidentDate", e.target.value)}
+                                            className="value"
+                                        />
                                     </div>
                                     <div className="field">
                                         <div className="label">Witness 1</div>
@@ -276,12 +287,14 @@ export default function IncidentCard() {
                                         </select>
                                     </div>
                                     <div className="field fieldFull">
-                                        <div className="label">Description:</div>
-                                        <textarea
-                                            className="value"
-                                            rows={3}
+                                        <Zbot_Fields
+                                            label="Description"
                                             value={form.description}
                                             onChange={e => setField("description", e.target.value)}
+                                            placeholder="Describe the incident..."
+                                            className="value"
+                                            multiline
+                                            rows={3}
                                             style={{ width: "100%" }}
                                         />
                                     </div>
@@ -334,8 +347,12 @@ export default function IncidentCard() {
                                         </select>
                                     </div>
                                     <div className="fieldFull">
-                                        <div className="label">Recommended Actions</div>
-                                        <input className="value" value={form.recommendedActions || ""} onChange={e => setField("recommendedActions", e.target.value)} />
+                                        <Zbot_Fields
+                                            label="Recommended Actions"
+                                            value={form.recommendedActions || ""}
+                                            onChange={e => setField("recommendedActions", e.target.value)}
+                                            className="value"
+                                        />
                                     </div>
                                     <div className="field">
                                         <div className="label">Responsible Person</div>
@@ -349,12 +366,22 @@ export default function IncidentCard() {
                                         </select>
                                     </div>
                                     <div className="field">
-                                        <div className="label">Due Date</div>
-                                        <input className="value" type="date" value={form.dueDate || ""} onChange={e => setField("dueDate", e.target.value)} />
+                                        <Zbot_Fields
+                                            label="Due Date"
+                                            type="date"
+                                            value={form.dueDate || ""}
+                                            onChange={e => setField("dueDate", e.target.value)}
+                                            className="value"
+                                        />
                                     </div>
                                     <div className="field">
-                                        <div className="label">Completed Date</div>
-                                        <input className="value" type="date" value={form.completedDate || ""} onChange={e => setField("completedDate", e.target.value)} />
+                                        <Zbot_Fields
+                                            label="Completed Date"
+                                            type="date"
+                                            value={form.completedDate || ""}
+                                            onChange={e => setField("completedDate", e.target.value)}
+                                            className="value"
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -378,12 +405,12 @@ export default function IncidentCard() {
                             <div className="actionBlock">
                                 <div className="actionBlock__buttons">
                                     <button
-                                        className="btn btnPrimary"
+                                        className="btn-electric btnPrimary"
                                         type="button"
                                         onClick={handleSave}
                                         disabled={saving || !isAllFieldsValid()}
                                     >
-                                        {saving ? "Saving..." : "Save Incident"}
+                                        <span>{saving ? "Saving..." : "Save Incident"}</span>
                                     </button>
                                 </div>
                                 {err && <div style={{ color: "#b42318", margin: "10px 0", fontWeight: 800 }}>{err}</div>}

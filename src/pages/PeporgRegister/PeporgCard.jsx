@@ -1,24 +1,82 @@
-﻿import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Papa from "papaparse";
-import { useNavigate, useParams, useLocation } from "react-router-dom"; // ✅ Merged Import
+import { useNavigate, useParams, useLocation } from "react-router-dom"; // ? Merged Import
+import { Plus, Pencil, UploadCloud, CloudDownload } from "lucide-react";
 import { createOrg, fetchOrgById, updateOrg } from "./peporgApi";
 import { fetchPeopleByOrg, createPerson } from "./peopleApi";
 import PeopleTable from "./PeopleTable";
+import { listQualifications } from "../../data/Qualifications/Qualifications.Repository";
+import { createQualification } from "../../data/Qualifications/Qualifications.Repository";
+import { createMedicalRecord } from "../../data/MedicalHist/MedHist.Repository";
 import DetailsLayout from "../DetailsLayout";
+import Zbot_Fields from "../../components/Zbot_Fields";
 import "../../styles/DetailPageLayout.css";
+
+function toProperCase(value = "") {
+    return String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function mapLegacyAddress(org = {}) {
+    const sourceAddress = org.address;
+    let legacyAddressLine1 = "";
+
+    if (typeof sourceAddress === "string") {
+        legacyAddressLine1 = sourceAddress;
+    } else if (Array.isArray(sourceAddress)) {
+        legacyAddressLine1 = sourceAddress.filter(Boolean).join(", ");
+    }
+
+    const nestedAddress = sourceAddress && typeof sourceAddress === "object" && !Array.isArray(sourceAddress)
+        ? sourceAddress
+        : {};
+
+    return {
+        ...org,
+        addressLine1: String(
+            org.addressLine1 ?? nestedAddress.addressLine1 ?? legacyAddressLine1 ?? ""
+        ),
+        addressLine2: String(
+            org.addressLine2 ?? nestedAddress.addressLine2 ?? nestedAddress.complexName ?? ""
+        ),
+        city: String(org.city ?? nestedAddress.city ?? ""),
+        province: String(org.province ?? nestedAddress.province ?? nestedAddress.state ?? org.state ?? ""),
+        postalCode: String(org.postalCode ?? nestedAddress.postalCode ?? ""),
+        country: String(org.country ?? nestedAddress.country ?? "South Africa") || "South Africa",
+    };
+}
+
+function truthyBoolean(value) {
+    if (typeof value === "boolean") return value;
+    const normalized = String(value ?? "").trim().toLowerCase();
+    return ["true", "1", "yes", "y"].includes(normalized);
+}
+
+function toIsoDateOrNull(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function nonEmpty(value) {
+    const text = String(value ?? "").trim();
+    return text.length > 0 ? text : "";
+}
 
 const PeporgCard = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const fileInputRef = useRef(null);
     const location = useLocation();
+    const tabFromQuery = new URLSearchParams(location.search || "").get("tab");
     
     // Helper: treat undefined or "new" as new org
     const isNewOrg = !id || id === "new";
 
     // --- State ---
     // Initializes from Dashboard state (Drill-downs)
-    const [activeTab, setActiveTab] = useState(() => location.state?.initialTab || "details");
+    const [activeTab, setActiveTab] = useState(() => tabFromQuery || location.state?.initialTab || "details");
     const [peopleFilter, setPeopleFilter] = useState(location.state?.initialFilter || null);
     
     const [editMode, setEditMode] = useState(isNewOrg); 
@@ -28,6 +86,7 @@ const PeporgCard = () => {
     const [peopleCount, setPeopleCount] = useState(0);
     const [peopleList, setPeopleList] = useState([]);
     const [savedOrg, setSavedOrg] = useState(null);
+    const [allOrgQualifications, setAllOrgQualifications] = useState([]);
 
     const [form, setForm] = useState({
         orgName: "",
@@ -35,9 +94,9 @@ const PeporgCard = () => {
         addressLine1: "",
         addressLine2: "",
         city: "",
-        state: "",
+        province: "",
         postalCode: "",
-        country: "",
+        country: "South Africa",
         contactNumber: "",
         vatTaxNumber: "",
         companyRegNumber: ""
@@ -46,27 +105,62 @@ const PeporgCard = () => {
     // Derived: Check if ALL required fields are filled
     const isFormComplete = [
         form.orgName,
+        form.tradingAs,
         form.contactNumber,
         form.vatTaxNumber,
         form.companyRegNumber,
         form.addressLine1,
         form.city,
-        form.state
+        form.province
     ].every(v => typeof v === "string" && v.trim() !== "");
 
     // --- Effects ---
+
     useEffect(() => {
         if (!isNewOrg) {
             loadOrgData();
+            loadOrgQualifications();
         }
     }, [id]);
+
+    // Keep tab/filter in sync when navigating with new route state.
+    useEffect(() => {
+        const incomingTab = tabFromQuery || location.state?.initialTab;
+        const incomingFilter = location.state?.initialFilter;
+
+        if (incomingTab && incomingTab !== activeTab) {
+            setActiveTab(incomingTab);
+        }
+
+        if ((incomingFilter ?? null) !== peopleFilter) {
+            setPeopleFilter(incomingFilter ?? null);
+        }
+    }, [tabFromQuery, location.state, activeTab, peopleFilter]);
+
+    // Fetch all qualifications for this org
+    const loadOrgQualifications = async () => {
+        try {
+            const quals = await listQualifications({ orgId: id, limit: 2000 });
+            setAllOrgQualifications(Array.isArray(quals) ? quals : (quals?.rows || []));
+        } catch (err) {
+            setAllOrgQualifications([]);
+        }
+    };
+    // Memoized array of expired people IDs
+    const expiredPeopleIds = useMemo(() => {
+        const todayStr = "2026-04-16";
+        const expired = allOrgQualifications.filter(q => q.renewal && q.renewal < todayStr);
+        const ids = expired.map(q => q.personId).filter(Boolean);
+        return Array.from(new Set(ids));
+    }, [allOrgQualifications]);
 
     const loadOrgData = async () => {
         try {
             setLoading(true);
             const org = await fetchOrgById(id);
-            setForm(org);
-            setSavedOrg(org);
+            const normalizedOrg = mapLegacyAddress(org || {});
+            setForm(normalizedOrg);
+            setSavedOrg(normalizedOrg);
 
             const people = await fetchPeopleByOrg(id);
             setPeopleCount(people?.length || 0);
@@ -104,15 +198,28 @@ const PeporgCard = () => {
     };
 
     const handleSubmit = async () => {
+        if (!isFormComplete) {
+            setError("Complete all required fields before saving.");
+            return;
+        }
+
+        setSaveMsg("Saving organisation...");
         setLoading(true);
         try {
+            const payload = {
+                ...form,
+                city: toProperCase(form.city),
+                province: toProperCase(form.province),
+                country: String(form.country || "South Africa").trim() || "South Africa",
+            };
+
             if (!isNewOrg) {
-                await updateOrg(id, form);
-                setSaveMsg("Got it! Updated successfully.");
+                await updateOrg(id, payload);
+                setSaveMsg("Saved successfully.");
                 setEditMode(false);
             } else {
-                const newOrg = await createOrg(form);
-                setSaveMsg("Got it! Created successfully.");
+                const newOrg = await createOrg(payload);
+                setSaveMsg("Saved successfully.");
                 
                 const newRealId = newOrg?.id || newOrg?._id || newOrg?.orgId;
                 if (newRealId) {
@@ -122,15 +229,14 @@ const PeporgCard = () => {
                 }
             }
         } catch (err) {
-            setError("Error saving data.");
+            setSaveMsg("Save failed.");
+            setError(err?.message || "Error saving data.");
         } finally {
             setLoading(false);
             setTimeout(() => setSaveMsg(""), 3000);
         }
     };
 
-    const handleImportPeople = () => fileInputRef.current?.click();
-    
     const handleFileChange = (e) => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
@@ -142,11 +248,73 @@ const PeporgCard = () => {
             skipEmptyLines: true,
             complete: async (results) => {
                 try {
+                    let importedCount = 0;
                     for (const row of results.data) {
-                        const personData = { ...row, orgId: id };
-                        await createPerson(personData);
+                                        // ── BUCKET 1: people ────────────────────────────────────────────
+                                        const employeeId = nonEmpty(row.employeeId);
+                                        const passportNumber = nonEmpty(row.passport) || nonEmpty(row.passportNumber) || nonEmpty(row["passport Number"]);
+                                        const personData = {
+                                            orgId:          id,
+                                            firstName:      nonEmpty(row.firstName),
+                                            lastName:       nonEmpty(row.lastName),
+                                            email:          nonEmpty(row.email),
+                                            idNumber:       nonEmpty(row.idNumber),
+                                            passport:       passportNumber,
+                                            phone:          nonEmpty(row.phone),
+                                            employeeId,
+                                            department:     nonEmpty(row.department),
+                                            manager:        nonEmpty(row.manager),
+                                            location:       nonEmpty(row.location),
+                                            gender:         nonEmpty(row.gender),
+                                            age:            nonEmpty(row.age),
+                                            classification: nonEmpty(row.classification),
+                                            staffLevel:     nonEmpty(row.staffLevel),
+                                            employeeType:   nonEmpty(row.employeeType),
+                                            status:         nonEmpty(row.status),
+                                            signedNDA:      truthyBoolean(row.signedNDA),
+                                            hasContract:    truthyBoolean(row.hasContract),
+                                            idVerified:     truthyBoolean(row.idVerified),
+                                        };
+
+                                        const createdPerson = await createPerson(personData);
+                                        const personMongoId = createdPerson?.id || createdPerson?._id;
+                                        if (!personMongoId) {
+                                            throw new Error(`Failed to create person record for employeeId '${employeeId || "unknown"}'`);
+                                        }
+
+                                        // ── BUCKET 2: medicalhis ────────────────────────────────────────
+                                        const lastMedicalDate = toIsoDateOrNull(row.last_medical_date);
+                                        const medicalType     = nonEmpty(row.medical_type);
+                                        const medExpiryDate   = toIsoDateOrNull(row.medical_expiry_date);
+                                        const fitnessStatus   = nonEmpty(row.fitness_status);
+                                        if (lastMedicalDate || medicalType || medExpiryDate || fitnessStatus) {
+                                            await createMedicalRecord({
+                                                employee_id:       personMongoId,  // ObjectId ref — required by schema
+                                                employee_code:     employeeId,
+                                                last_medical_date: lastMedicalDate,
+                                                medical_type:      medicalType,
+                                                expiry_date:       medExpiryDate,  // CSV: medical_expiry_date → DB: expiry_date
+                                                fitness_status:    fitnessStatus,
+                                            });
+                                        }
+
+                                        // ── BUCKET 3: qualifications ────────────────────────────────────
+                                        const qualName     = nonEmpty(row.qual_name);
+                                        const qualExpiry   = toIsoDateOrNull(row.qual_expiry_date);
+                                        const qualObtained = toIsoDateOrNull(row.qual_obtained_date);
+                                        if (qualName || qualExpiry) {
+                                            await createQualification({
+                                                personId:  personMongoId,  // ObjectId ref — required by schema
+                                                employeeId,
+                                                name:      qualName || "Qualification",
+                                                obtained:  qualObtained,
+                                                renewal:   qualExpiry,
+                                            });
+                                        }
+
+                                        importedCount += 1;
                     }
-                    setSaveMsg("Import successful!");
+                    setSaveMsg(`Import successful! ${importedCount} row(s) processed.`);
                     loadOrgData();
                 } catch (err) {
                     setError(err?.message || "Import failed.");
@@ -162,23 +330,31 @@ const PeporgCard = () => {
     };
 
     const handleDownloadTemplate = () => {
-        const headers = ["firstName", "lastName", "email", "employeeType", "employeeId", "department", "manager", "location", "staffLevel"];
-        const csvContent = headers.join(",") + "\n";
+        const headers = ["firstName", "lastName", "email", "idNumber", "passport", "phone", "employeeId", "department", "manager", "location", "gender", "age", "classification", "staffLevel", "employeeType", "status", "last_medical_date", "medical_type", "medical_expiry_date", "fitness_status", "qual_name", "qual_obtained_date", "qual_expiry_date", "signedNDA", "hasContract", "idVerified"];
+        const sampleRow = ["John", "Doe", "john.doe@company.com", "9201015800081", "A12345678", "0821234567", "EMP001", "Operations", "Jane Smith", "Johannesburg", "Male", "34", "African", "P2 - Professional", "Permanent", "Active", "2025-01-15", "Periodic", "2026-01-15", "Fit", "First Aid", "2023-06-01", "2025-06-01", "True", "True", "True"];
+        const csvContent = headers.join(",") + "\n" + sampleRow.join(",") + "\n";
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "people_import_template.csv";
+        a.download = "People_Import_Template.csv";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
 
+    // Reliability: If filter is 'Expired', force tab to 'people'
+    useEffect(() => {
+        if (peopleFilter === 'Expired' && activeTab !== 'people') {
+            setActiveTab('people');
+        }
+    }, [peopleFilter, activeTab]);
+
     return (
         <DetailsLayout
             title={form.orgName || "Untitled Organisation"}
-            subtitle={isNewOrg ? "New Organisation • Creating new record" : `Organisation • ID: ${id}`}
+            subtitle={isNewOrg ? "New Organisation � Creating new record" : `Organisation � ID: ${id}`}
             statusPills={[{ text: isNewOrg ? "New" : "Active", className: "pillLive" }]}
             sidebarContent={
                 <>
@@ -202,75 +378,92 @@ const PeporgCard = () => {
                     </div>
                     <div className="sideBlock">
                         <div className="sideBlock__title">Registration Details</div>
-                        <div className="summaryRow"><div className="summaryLabel">Contact</div><div className="summaryValue">{form.contactNumber || "—"}</div></div>
-                        <div className="summaryRow"><div className="summaryLabel">VAT No.</div><div className="summaryValue">{form.vatTaxNumber || "—"}</div></div>
+                        <div className="summaryRow"><div className="summaryLabel">Contact</div><div className="summaryValue">{form.contactNumber || "�"}</div></div>
+                        <div className="summaryRow"><div className="summaryLabel">VAT No.</div><div className="summaryValue">{form.vatTaxNumber || "�"}</div></div>
                     </div>
                     <div className="sideBlock">
                         <div className="sideBlock__title">People</div>
                         <div className="bigStat">{peopleCount}</div>
                     </div>
-                    
-                    <div className="actionBlock" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                    <div className="sideBlock">
+                        <div className="sideBlock__title">ACTIONS</div>
                         {(!isNewOrg && !editMode) && (
-                            <>
-                                <button className="btn btnPrimary" onClick={handleImportPeople} type="button">Import People</button>
-                                <input type="file" ref={fileInputRef} style={{display:'none'}} onChange={handleFileChange} />
-                                <button className="btn btnGhost" onClick={handleDownloadTemplate} type="button">Download Template</button>
-                                <button className="btn btnPrimary" onClick={() => navigate(`/peporg/${id}/people/new`)} type="button">Add Person</button>
-                            </>
-                        )}
-                        
-                        {editMode ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <button className="btn btnPrimary" onClick={handleSubmit} disabled={loading || !isFormComplete}>
-                                    {loading ? "Saving..." : "Save"}
-                                </button>
-                                <button className="btn btnGhost" onClick={handleBack}>Cancel</button>
+                            <div className="action-row" aria-label="Sidebar actions" style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, marginBottom: 10, width: "100%", maxWidth: "100%" }}>
+                                <div className="action-flicker-square" onClick={() => window.location.assign(`/peporg/${id}/people/new`)} title="Add Person"><div className="flicker-icon-wrapper"><Plus size={22} /></div></div>
+
+                                <div className="action-flicker-square" onClick={handleEdit} title="Edit Organisation"><div className="flicker-icon-wrapper"><Pencil size={20} /></div></div>
+
+                                <div className="action-flicker-square" title="Import People"><input type="file" className="flicker-input-overlay" onChange={handleFileChange} accept=".csv" /><div className="flicker-icon-wrapper"><UploadCloud size={22} /></div></div>
+
+                                <div className="action-flicker-square" onClick={handleDownloadTemplate} title="Download Template"><div className="flicker-icon-wrapper"><CloudDownload size={22} /></div></div>
                             </div>
-                        ) : (
-                            <button className="btn btnPrimary" onClick={handleEdit}>Edit Organisation</button>
                         )}
+
+                        {editMode ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+                                <button
+                                    className="btn-electric btnPrimary"
+                                    onClick={handleSubmit}
+                                    disabled={loading || !isFormComplete}
+                                    title={!isFormComplete ? "Fill all required fields (including address) to save." : ""}
+                                >
+                                    <span>{loading ? "Saving..." : "Save"}</span>
+                                </button>
+                                <button className="btn-electric btnGhost" onClick={handleBack}><span>Cancel</span></button>
+                                {!isFormComplete && (
+                                    <div className="saveFeedback" style={{ marginTop: 2 }}>
+                                        Complete required fields to enable save.
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+
                         {saveMsg && <div className="saveFeedback">{saveMsg}</div>}
                     </div>
                 </>
             }
         >
-            {/* ===== TABS ===== */}
-            <div className="tabBarContainer" style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 2, marginBottom: 18 }}>
-                {["details", "people", "leadership"].map(tab => (
-                    <button
-                        key={tab}
-                        className={`btn ${activeTab === tab ? "btnPrimary" : "btnGhost"}`}
-                        onClick={() => setActiveTab(tab)}
-                        style={{ fontWeight: 600, textTransform: 'capitalize', fontSize: 16 }}
-                    >
-                        {tab}
-                    </button>
-                ))}
-            </div>
-            
-            <div style={{ marginTop: 24 }}>
-                {activeTab === "details" ? (
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", paddingRight: 4 }}>
+                {/* ===== TABS ===== */}
+                <div className="tabBarContainer" style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 2, marginBottom: 18 }}>
+                    {["details", "people", "leadership"].map(tab => (
+                        <button
+                            key={tab}
+                            className={`btn-electric ${activeTab === tab ? "btnPrimary" : "btnGhost"}`}
+                            onClick={() => setActiveTab(tab)}
+                            style={{ fontWeight: 600, textTransform: 'capitalize', fontSize: 16 }}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={{ marginTop: 24, paddingBottom: 12 }}>
+                    {activeTab === "details" ? (
                     <form id="peporg-form" autoComplete="off">
                         <div className="panel__title">Organisation Details</div>
                         {error && <div className="errorText">{error}</div>}
                         <div className="fieldGrid">
-                            <div className="field"><label className="label">Organisation Name</label><input className="value" name="orgName" value={form.orgName} onChange={handleChange} disabled={!editMode} required /></div>
-                            <div className="field"><label className="label">Trading As</label><input className="value" name="tradingAs" value={form.tradingAs} onChange={handleChange} disabled={!editMode} /></div>
+                            <div className="field"><label className="label">Organisation Name</label><Zbot_Fields className="value" name="orgName" value={form.orgName} onChange={handleChange} disabled={!editMode} required label="Organisation Name" /></div>
+                            <div className="field"><label className="label">Trading As</label><Zbot_Fields className="value" name="tradingAs" value={form.tradingAs} onChange={handleChange} disabled={!editMode} label="Trading As" /></div>
                             {editMode && (
                                 <>
-                                    <div className="field"><label className="label">Contact Number</label><input className="value" name="contactNumber" value={form.contactNumber} onChange={handleChange} disabled={!editMode} /></div>
-                                    <div className="field"><label className="label">Company Registration Number</label><input className="value" name="companyRegNumber" value={form.companyRegNumber} onChange={handleChange} disabled={!editMode} /></div>
-                                    <div className="field"><label className="label">VAT Number</label><input className="value" name="vatTaxNumber" value={form.vatTaxNumber} onChange={handleChange} disabled={!editMode} /></div>
+                                    <div className="field"><label className="label">Contact Number</label><Zbot_Fields className="value" name="contactNumber" value={form.contactNumber} onChange={handleChange} disabled={!editMode} label="Contact Number" /></div>
+                                    <div className="field"><label className="label">Company Registration Number</label><Zbot_Fields className="value" name="companyRegNumber" value={form.companyRegNumber} onChange={handleChange} disabled={!editMode} label="Company Registration Number" /></div>
+                                    <div className="field"><label className="label">VAT Number</label><Zbot_Fields className="value" name="vatTaxNumber" value={form.vatTaxNumber} onChange={handleChange} disabled={!editMode} label="VAT Number" /></div>
                                 </>
                             )}
                         </div>
                         <div className="field fieldFull">
                             <label className="label">Address</label>
-                            <div className="addressStack">
-                                <input className="value" name="addressLine1" placeholder="Line 1" value={form.addressLine1} onChange={handleChange} disabled={!editMode} style={{ marginBottom: 10 }} />
-                                <input className="value" name="city" placeholder="City" value={form.city} onChange={handleChange} disabled={!editMode} style={{ marginBottom: 10 }} />
-                                <input className="value" name="state" placeholder="State" value={form.state} onChange={handleChange} disabled={!editMode} />
+                            <div className="fieldGrid" style={{ gap: 28, minHeight: 320 }}>
+                                <div className="field"><label className="label">Primary Address</label><Zbot_Fields className="value" name="addressLine1" placeholder="House number, street name" value={form.addressLine1} onChange={handleChange} disabled={!editMode} label="Primary Address" /></div>
+                                <div className="field"><label className="label">Suite / Unit / Floor</label><Zbot_Fields className="value" name="addressLine2" placeholder="Optional details" value={form.addressLine2} onChange={handleChange} disabled={!editMode} label="Suite / Unit / Floor" /></div>
+                                <div className="field"><label className="label">City</label><Zbot_Fields className="value" name="city" placeholder="e.g. Sandton" value={form.city} onChange={handleChange} disabled={!editMode} label="City" /></div>
+                                <div className="field"><label className="label">Province</label><Zbot_Fields className="value" name="province" placeholder="e.g. Gauteng" value={form.province} onChange={handleChange} disabled={!editMode} label="Province" /></div>
+                                <div className="field"><label className="label">Postal Code</label><Zbot_Fields className="value" name="postalCode" placeholder="e.g. 2196" value={form.postalCode} onChange={handleChange} disabled={!editMode} label="Postal Code" /></div>
+                                <div className="field"><label className="label">Country</label><select className="value" name="country" value={form.country || "South Africa"} onChange={handleChange} disabled={!editMode}><option value="South Africa">South Africa</option></select></div>
                             </div>
                         </div>
                     </form>
@@ -313,12 +506,18 @@ const PeporgCard = () => {
                         {peopleFilter && (
                             <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <span style={{ background: '#e0f7fa', color: '#007b8a', borderRadius: 8, fontSize: 13, padding: '2px 10px', fontWeight: 600 }}>Filter Active: {peopleFilter}</span>
-                                <button style={{ border: 'none', background: 'none', color: '#007b8a', fontWeight: 700, cursor: 'pointer', fontSize: 16 }} onClick={() => setPeopleFilter(null)}>×</button>
+                                <button className="btn-electric btnGhost" style={{ color: '#007b8a', fontWeight: 700, fontSize: 16, width: 32, minWidth: 32, height: 32, padding: 0 }} onClick={() => setPeopleFilter(null)}><span>�</span></button>
                             </div>
                         )}
-                        <PeopleTable orgId={id} filter={peopleFilter} />
+                        <PeopleTable
+                            orgId={id}
+                            filter={peopleFilter}
+                            qualifications={allOrgQualifications}
+                            expiredPeopleIds={expiredPeopleIds}
+                        />
                     </div>
                 )}
+                </div>
             </div>
         </DetailsLayout>
     );

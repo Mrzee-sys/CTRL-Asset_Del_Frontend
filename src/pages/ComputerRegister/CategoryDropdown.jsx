@@ -23,10 +23,11 @@ export default function CategoryDropdown({ value, onChange }) {
                 verticalAlign: 'middle',
             }}
         >
-            <option value="Computers">Computers</option>
-            <option value="Servers">Servers</option>
-            <option value="Networking">Networking</option>
-            <option value="AV Equipment">AV Equipment</option>
+            <option value="all">All Assets</option>
+            <option value="computer">Computers</option>
+            <option value="server">Servers</option>
+            <option value="networking">Networking</option>
+            <option value="av">AV Equipment</option>
             <option value="Sundries">Sundries</option>
         </select>
     );

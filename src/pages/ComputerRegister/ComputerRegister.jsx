@@ -1,19 +1,25 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { FiPlus, FiSearch, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import React, { useEffect, useMemo, useState } from "react";
+import OrganizationSelector from "../../components/OrganizationSelector";
+import { useLocation, useNavigate } from "react-router-dom";
+import { 
+    FiPlus, FiSearch, FiChevronLeft, FiChevronRight, 
+    FiServer, FiMonitor, FiCpu, FiVideo 
+} from "react-icons/fi";
 import CategoryDropdown from "./CategoryDropdown";
-import { fetchComputers } from "./computerApi";
+import { listComputers } from "../../data/Computer/Computer.repository.js";
+import { listServers } from "../../data/Server/Server.repository.js";
+import { listNetworkHardware } from "../../data/NetworkHardware/NetworkHardware.repository.js";
+import { listAvequipment } from "../../data/Avequipment/Avequipment.repository.js";
 import RegisterLayout from "../RegisterLayout";
+import { useDashboardFilter } from "../../context/DashboardFilterContext";
 
 // Styles
 import "../../Styles/DetailPageLayout.css";
 import "../../styles/Register.css";
 import "./computerRegister.css";
 import "./ComputerCard.css";
+import "./asset-modal.css"; // Ensure your CSS has the cyan-glow styles
 
-/**
- * Helper to determine the CSS class for status pills
- */
 function pillClass(status) {
     const s = String(status || "").toLowerCase();
     if (s.includes("live") || s.includes("in use")) return "good";
@@ -23,9 +29,15 @@ function pillClass(status) {
 }
 
 export default function ComputerRegister() {
-        // Category dropdown state
-        const [assetCategory, setAssetCategory] = useState('Computers');
+    const location = useLocation();
     const navigate = useNavigate();
+    const { activeDashboardFilter, setActiveDashboardFilter, clearActiveDashboardFilter } = useDashboardFilter();
+    const routeState = location.state || {};
+    const incomingCategory = String(routeState.category || routeState.initialCategory || "").trim();
+
+    // --- State Management ---
+    const [assetCategory, setAssetCategory] = useState('all');
+    const [selectedOrgId, setSelectedOrgId] = useState("");
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState("");
@@ -35,245 +47,531 @@ export default function ComputerRegister() {
     const [limit, setLimit] = useState(25);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [statusFilter, setStatusFilter] = useState(String(routeState.initialFilterStatus || ""));
+    const [locationFilter, setLocationFilter] = useState(String(routeState.initialFilterLocation || ""));
+    const [unassignedOwnerFilter, setUnassignedOwnerFilter] = useState(Boolean(routeState.initialUnassignedOwner));
+    const [placeholderDataFilter, setPlaceholderDataFilter] = useState(Boolean(routeState.initialPlaceholderData));
+    const [refreshRequiredFilter, setRefreshRequiredFilter] = useState(String(routeState.initialRiskFilter || "") === "refreshRequired");
+    const [warrantyStatusFilter, setWarrantyStatusFilter] = useState(String(routeState.warrantyStatus || ""));
+    const [nextActionFilter, setNextActionFilter] = useState(
+        String(routeState.filterType || "").toLowerCase() === "nextaction" ? String(routeState.filterValue || "") : ""
+    );
+    const [makeFilter, setMakeFilter] = useState(String(routeState.make || ""));
+    const [manufacturerTopFilter, setManufacturerTopFilter] = useState(
+        Array.isArray(routeState.manufacturerTop) ? routeState.manufacturerTop.map((m) => String(m || "").toLowerCase().trim()) : []
+    );
 
-    async function loadData(query = activeQuery, nextPage = page, nextLimit = limit) {
+    const normalizeId = (value) => {
+        if (!value) return "";
+        if (typeof value === "string") return value.trim();
+        if (typeof value === "number") return String(value);
+        if (typeof value === "object") {
+            if (value._id) return normalizeId(value._id);
+            if (value.id) return normalizeId(value.id);
+            if (value.$oid) return normalizeId(value.$oid);
+            if (typeof value.toString === "function") {
+                const text = value.toString().trim();
+                if (text && text !== "[object Object]") return text;
+            }
+        }
+        return String(value).trim();
+    };
+
+    const clearDashboardDrivenFilters = () => {
+        setStatusFilter("");
+        setLocationFilter("");
+        setUnassignedOwnerFilter(false);
+        setPlaceholderDataFilter(false);
+        setRefreshRequiredFilter(false);
+        setWarrantyStatusFilter("");
+        setNextActionFilter("");
+        setMakeFilter("");
+        setManufacturerTopFilter([]);
+    };
+
+    useEffect(() => {
+        if (routeState.orgId) setSelectedOrgId(String(routeState.orgId));
+        if (incomingCategory) setAssetCategory(incomingCategory);
+        clearDashboardDrivenFilters();
+        setStatusFilter(String(routeState.initialFilterStatus || ""));
+        setLocationFilter(String(routeState.initialFilterLocation || ""));
+        setUnassignedOwnerFilter(Boolean(routeState.initialUnassignedOwner));
+        setPlaceholderDataFilter(Boolean(routeState.initialPlaceholderData));
+        setRefreshRequiredFilter(
+            String(routeState.initialRiskFilter || "") === "refreshRequired" ||
+            String(routeState.filterType || "") === "refreshRequired"
+        );
+        setWarrantyStatusFilter(String(routeState.warrantyStatus || ""));
+        setNextActionFilter(
+            String(routeState.filterType || "").toLowerCase() === "nextaction" ? String(routeState.filterValue || "") : ""
+        );
+        setMakeFilter(String(routeState.make || ""));
+        setManufacturerTopFilter(
+            Array.isArray(routeState.manufacturerTop)
+                ? routeState.manufacturerTop.map((m) => String(m || "").toLowerCase().trim())
+                : []
+        );
+
+        if (routeState.dashboardFilter) {
+            setActiveDashboardFilter(routeState.dashboardFilter);
+        } else if (routeState.filterType || routeState.filterValue || routeState.make) {
+            setActiveDashboardFilter({
+                type: String(routeState.filterType || "legacy"),
+                value: routeState.filterValue || routeState.make || routeState.initialFilterStatus || "",
+                label: routeState.filterValue || routeState.make || routeState.initialFilterStatus || "",
+                source: "assetDashboard",
+                updatedAt: Date.now(),
+            });
+        }
+        setPage(1);
+    }, [routeState.orgId, incomingCategory, routeState.initialFilterStatus, routeState.initialFilterLocation, routeState.initialUnassignedOwner, routeState.initialPlaceholderData, routeState.initialRiskFilter, routeState.warrantyStatus, routeState.filterType, routeState.filterValue, routeState.make, routeState.manufacturerTop, routeState.dashboardFilter, setActiveDashboardFilter]);
+
+    useEffect(() => {
+        if (!activeDashboardFilter || activeDashboardFilter.source !== "assetDashboard") return;
+
+        clearDashboardDrivenFilters();
+
+        if (activeDashboardFilter.orgId) {
+            setSelectedOrgId(String(activeDashboardFilter.orgId));
+        }
+
+        if (activeDashboardFilter.category) {
+            setAssetCategory(String(activeDashboardFilter.category));
+        }
+
+        const label = String(activeDashboardFilter.label || activeDashboardFilter.value || "").trim();
+        setSearchText(label);
+        setActiveQuery("");
+
+        const type = String(activeDashboardFilter.type || "").toLowerCase();
+        const value = String(activeDashboardFilter.value || "").trim();
+
+        if (type === "status") setStatusFilter(value);
+        if (type === "manufacturer") setMakeFilter(value);
+        if (type === "location") setLocationFilter(value);
+        if (type === "nextaction") setNextActionFilter(value);
+
+        if (type === "compliance") {
+            if (value === "refreshRequired") setRefreshRequiredFilter(true);
+            if (value === "unassignedCustody") setUnassignedOwnerFilter(true);
+            if (value === "placeholderData") setPlaceholderDataFilter(true);
+            if (value === "zombieAssets") {
+                setStatusFilter("Retired");
+                setLocationFilter("");
+            }
+        }
+
+        setPage(1);
+    }, [activeDashboardFilter]);
+
+    // --- Data Loading ---
+    async function loadData() {
         setLoading(true);
         setErr("");
         try {
-            const data = await fetchComputers({ search: query, page: nextPage, limit: nextLimit });
+            let data = { rows: [], total: 0, totalPages: 1 };
+
+            if (assetCategory === "all") {
+                const allParams = {
+                    search: activeQuery,
+                    orgId: selectedOrgId,
+                    limit: 1000,
+                };
+
+                const [computersData, serversData, networkingData, avData] = await Promise.all([
+                    listComputers({ ...allParams, category: "computer" }),
+                    listServers(allParams),
+                    listNetworkHardware(allParams),
+                    listAvequipment(allParams),
+                ]);
+
+                const allRows = [
+                    ...(Array.isArray(computersData?.rows) ? computersData.rows : []).map((r) => ({ ...r, __category: "computer" })),
+                    ...(Array.isArray(serversData?.rows) ? serversData.rows : []).map((r) => ({ ...r, __category: "server" })),
+                    ...(Array.isArray(networkingData?.rows) ? networkingData.rows : []).map((r) => ({ ...r, __category: "networking" })),
+                    ...(Array.isArray(avData?.rows) ? avData.rows : []).map((r) => ({ ...r, __category: "av" })),
+                ]
+                    .slice()
+                    .sort((a, b) => new Date(b?.createdAt ?? 0) - new Date(a?.createdAt ?? 0));
+
+                let scopedRows = allRows;
+                const hasScopedAssetIds = activeDashboardFilter?.source === "assetDashboard" && Array.isArray(activeDashboardFilter?.assetIds);
+                if (hasScopedAssetIds) {
+                    const allowedIds = new Set(
+                        activeDashboardFilter.assetIds
+                            .map((id) => normalizeId(id))
+                            .filter(Boolean)
+                    );
+                    scopedRows = allRows.filter((row) => {
+                        const rowName = row?.computerName || row?.serverName || row?.hostname || row?.deviceName || row?.equipmentType || row?.name || "-";
+                        const fallbackRowId = `${row?.serialNumber || "no-serial"}-${rowName}`;
+                        const rowId = normalizeId(row?._id || row?.id) || fallbackRowId;
+                        return allowedIds.has(rowId);
+                    });
+                }
+
+                const totalAll = scopedRows.length;
+                const start = (page - 1) * limit;
+                const end = start + limit;
+                data = {
+                    rows: scopedRows.slice(start, end),
+                    total: totalAll,
+                    totalPages: Math.max(1, Math.ceil(totalAll / limit)),
+                };
+            } else if (assetCategory === "computer") {
+                data = await listComputers({
+                    search: activeQuery,
+                    page,
+                    limit,
+                    orgId: selectedOrgId,
+                    category: "computer",
+                });
+            } else if (assetCategory === "server") {
+                data = await listServers({
+                    search: activeQuery,
+                    page,
+                    limit,
+                    orgId: selectedOrgId,
+                });
+            } else if (assetCategory === "networking") {
+                data = await listNetworkHardware({
+                    search: activeQuery,
+                    page,
+                    limit,
+                    orgId: selectedOrgId,
+                });
+            } else if (assetCategory === "av") {
+                data = await listAvequipment({
+                    search: activeQuery,
+                    page,
+                    limit,
+                    orgId: selectedOrgId,
+                });
+            }
+
             setRows(Array.isArray(data?.rows) ? data.rows : []);
-            setPage(data?.page ?? nextPage);
-            setLimit(data?.limit ?? nextLimit);
             setTotal(data?.total ?? 0);
             setTotalPages(data?.totalPages ?? 1);
         } catch (e) {
-            setErr(e?.message || "Failed to load computers");
+            setErr("Failed to load records");
             setRows([]);
-            setTotal(0);
-            setTotalPages(1);
         } finally {
             setLoading(false);
         }
     }
 
     useEffect(() => {
-        loadData("", 1, limit);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        loadData();
+    }, [selectedOrgId, page, limit, activeQuery, assetCategory, activeDashboardFilter]);
 
-    const filteredRows = useMemo(() => {
-        if (!activeQuery) return rows;
-        const q = activeQuery.toLowerCase();
-        return rows.filter((r) =>
-            [
-                r.assetTag,
-                r.openId,
-                r.computerName,
-                r.status,
-                r.owner,
-                r.previousOwner,
-                r.type,
-                r.make,
-                r.model,
-                r.serialNumber,
-                r.os,
-                r.location,
-                r.company,
-                r.farNumber,
-            ]
-                .filter(Boolean)
-                .some((v) => String(v).toLowerCase().includes(q))
-        );
-    }, [rows, activeQuery]);
-
-    function onSearch() {
-        const q = searchText.trim();
-        setActiveQuery(q);
-        setPage(1);
-        loadData(q, 1, limit);
-    }
-
-    function onClearSearch() {
+    // --- Handlers ---
+    const handleModalOpen = () => setIsModalOpen(true);
+    const handleModalClose = () => setIsModalOpen(false);
+    
+    const onSearch = () => { setActiveQuery(searchText); setPage(1); };
+    const onClearSearch = () => {
         setSearchText("");
         setActiveQuery("");
+        clearDashboardDrivenFilters();
+        clearActiveDashboardFilter();
         setPage(1);
-        loadData("", 1, limit);
-    }
+    };
+    
+    // Finalized: Modal asset type selection routes
+    const handleAssetTypeSelect = (type) => {
+        const routeMap = {
+            computer: '/computers/new',
+            server: '/servers/new',
+            networking: '/networking/new',
+            av: '/av-equipment/new'
+        };
+        setIsModalOpen(false);
+        if (routeMap[type]) {
+            navigate(routeMap[type], { state: { orgId: selectedOrgId } });
+        }
+    };
 
-    function onAddAsset() {
-        navigate("/computers/new");
-    }
+    const detailRouteByCategory = {
+        computer: '/computers',
+        server: '/servers',
+        networking: '/networking',
+        av: '/av-equipment',
+    };
 
-    function onOpenAsset(id) {
-        if (!id) return;
-        navigate(`/computers/${id}`);
-    }
+    const getRowCategory = (row) => {
+        if (row?.__category) return row.__category;
+        if (assetCategory !== "all") return assetCategory;
 
-    function goPrev() {
-        if (page <= 1) return;
-        const next = page - 1;
-        setPage(next);
-        loadData(activeQuery, next, limit);
-    }
+        const explicit = String(row?.category || "").toLowerCase().trim();
+        if (["computer", "server", "networking", "av"].includes(explicit)) return explicit;
+        if (row?.computerName) return "computer";
+        if (row?.serverName || row?.hostname) return "server";
+        if (row?.deviceName) return "networking";
+        if (row?.equipmentType) return "av";
+        return "computer";
+    };
 
-    function goNext() {
-        if (page >= totalPages) return;
-        const next = page + 1;
-        setPage(next);
-        loadData(activeQuery, next, limit);
-    }
+    const getAssetName = (row, rowCategory) => {
+        if (rowCategory === "computer") return row.computerName || row.name || "-";
+        if (rowCategory === "server") return row.serverName || row.hostname || "-";
+        if (rowCategory === "networking") return row.deviceName || "-";
+        if (rowCategory === "av") return row.equipmentType || "-";
+        return row.name || "-";
+    };
 
-    function onChangeLimit(e) {
-        const nextLimit = parseInt(e.target.value, 10) || 25;
-        setLimit(nextLimit);
-        setPage(1);
-        loadData(activeQuery, 1, nextLimit);
-    }
+    const displayRows = useMemo(() => {
+        const containsPlaceholder = (value) => {
+            const text = String(value || "").toLowerCase();
+            return text.includes("tbc") || text.includes("123") || text.includes("pending");
+        };
 
-    // Toolbar content for RegisterLayout
+        const isUnassignedOwner = (row) => {
+            const owner = String(row?.owner || "").toLowerCase().trim();
+            const ownerName = String(row?.ownerName || "").toLowerCase().trim();
+            return !owner || owner === "unassigned" || ownerName === "unassigned" || ownerName === "-";
+        };
+
+        return rows.filter((r) => {
+            const status = String(r?.status || "").toLowerCase().trim();
+            const physicalLocation = String(r?.physicalLocation || r?.location || "").toLowerCase().trim();
+            const rowCategory = getRowCategory(r);
+
+            const normalizedSelectedCategory = String(assetCategory || "all").toLowerCase().trim();
+            const matchesCategory = normalizedSelectedCategory === "all" || String(rowCategory || "").toLowerCase().trim() === normalizedSelectedCategory;
+            if (!matchesCategory) return false;
+
+            if (statusFilter && status !== String(statusFilter).toLowerCase().trim()) return false;
+            if (locationFilter && physicalLocation !== String(locationFilter).toLowerCase().trim()) return false;
+
+            if (unassignedOwnerFilter && !isUnassignedOwner(r)) return false;
+            if (placeholderDataFilter && !(containsPlaceholder(r?.serialNumber) || containsPlaceholder(r?.farNumber))) return false;
+
+            if (refreshRequiredFilter) {
+                const status = String(r?.status || r?.currentStatus || r?.systemStatus || "").toLowerCase().trim();
+                if (status !== "live") return false;
+                const rawDate = r?.datePurchased || r?.purchaseDate || r?.dateOfPurchase;
+                if (!rawDate) return false;
+                const purchaseDate = new Date(rawDate);
+                if (Number.isNaN(purchaseDate.getTime())) return false;
+                const threshold = new Date();
+                threshold.setFullYear(threshold.getFullYear() - 5);
+                if (purchaseDate > threshold) return false;
+            }
+
+            if (String(warrantyStatusFilter).toLowerCase() === "expired") {
+                const rawWarrantyDate = r?.warrantyDate || r?.dateWarrantyExpires;
+                if (!rawWarrantyDate) return false;
+                const warrantyDate = new Date(rawWarrantyDate);
+                if (Number.isNaN(warrantyDate.getTime())) return false;
+                if (!(warrantyDate < new Date())) return false;
+            }
+
+            if (nextActionFilter) {
+                const rowNextAction = String(r?.nextAction || "").toLowerCase().trim();
+                if (rowNextAction !== String(nextActionFilter).toLowerCase().trim()) return false;
+            }
+
+            if (makeFilter) {
+                const rowMake = String(r?.make || r?.manufacturer || r?.brand || r?.vendor || "").trim();
+                if (String(makeFilter).toLowerCase() === "other") {
+                    if (manufacturerTopFilter.includes(rowMake.toLowerCase())) return false;
+                } else if (rowMake.toLowerCase() !== String(makeFilter).toLowerCase().trim()) {
+                    return false;
+                }
+            }
+
+            const hasScopedAssetIds = activeDashboardFilter?.source === "assetDashboard" && Array.isArray(activeDashboardFilter?.assetIds);
+            if (hasScopedAssetIds) {
+                const fallbackRowId = `${r?.serialNumber || "no-serial"}-${getAssetName(r, rowCategory)}`;
+                const rowId = normalizeId(r?._id || r?.id) || fallbackRowId;
+                const allowedIds = activeDashboardFilter.assetIds
+                    .map((id) => normalizeId(id))
+                    .filter(Boolean);
+                if (!allowedIds.includes(rowId)) return false;
+            }
+
+            return true;
+        });
+    }, [rows, statusFilter, locationFilter, unassignedOwnerFilter, placeholderDataFilter, refreshRequiredFilter, warrantyStatusFilter, nextActionFilter, makeFilter, manufacturerTopFilter, activeDashboardFilter]);
+
+    // --- UI Components ---
+
+    // FIXED: Wrapped in Fragment to avoid "Adjacent JSX elements" error
     const toolbarContent = (
-        <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <button className="cr-primary" onClick={onAddAsset} type="button">
-                    <FiPlus /> Add Asset
+        <>
+            {selectedOrgId ? (
+                <button className="btn-electric btnPrimary cr-primary" onClick={handleModalOpen} type="button">
+                    <span><FiPlus /> Add Asset</span>
                 </button>
-                <span style={{ marginLeft: 16, marginRight: 4, fontSize: 15, color: 'var(--text)', fontWeight: 500 }}>
-                    Select Category
+            ) : (
+                <span style={{ color: 'var(--muted-color)', fontSize: 14, marginRight: 16 }}>
+                    Select organization to enable actions
+                </span>
+            )}
+
+            <span style={{ marginLeft: 28, display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600 }}>
+                    Category:
                 </span>
                 <CategoryDropdown value={assetCategory} onChange={e => setAssetCategory(e.target.value)} />
-            </div>
-            <div className="cr-search">
-                <input
-                    className="cr-searchInput"
-                    placeholder="Search computers..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
+            </span>
+
+            <span style={{ marginLeft: 28 }}>
+                <OrganizationSelector
+                    selectedOrgId={selectedOrgId}
+                    setSelectedOrgId={setSelectedOrgId}
+                    onOrgChange={setSelectedOrgId}
                 />
-                <button className="cr-searchBtn" onClick={onSearch} type="button" disabled={loading}>
-                    <FiSearch /> Search
-                </button>
-                {(activeQuery || searchText) && (
-                    <button className="cr-ghost" onClick={onClearSearch} type="button" disabled={loading}>
-                        Clear
-                    </button>
-                )}
-            </div>
-        </div>
+            </span>
+        </>
     );
 
-    // Pagination/status row
-    const statusRow = (
-        <div className="cr-statusRow" style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: "12px" }}>
-            <div>
-                {loading ? (
-                    <span className="cr-muted">Loading computers…</span>
-                ) : err ? (
-                    <span className="cr-error">{err}</span>
-                ) : (
-                    <span className="cr-muted">
-                        Showing <b>{filteredRows.length}</b> on this page • Total <b>{total}</b> computer(s)
-                        {activeQuery ? (
-                            <> for “<b>{activeQuery}</b>”</>
-                        ) : null}
-                    </span>
-                )}
-            </div>
-            <div className="cr-pager" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="cr-muted">
-                    Page <b>{page}</b> of <b>{totalPages || 1}</b>
-                </span>
-                <button className="cr-iconBtn" type="button" onClick={goPrev} disabled={loading || page <= 1} title="Previous page">
-                    <FiChevronLeft />
-                </button>
-                <button
-                    className="cr-iconBtn"
-                    type="button"
-                    onClick={goNext}
-                    disabled={loading || page >= totalPages}
-                    title="Next page"
-                >
-                    <FiChevronRight />
-                </button>
-                <select
-                    className="cr-select"
-                    value={limit}
-                    onChange={onChangeLimit}
-                    disabled={loading}
-                    title="Rows per page"
-                    style={{ padding: '4px 8px', borderRadius: '8px', border: '1px solid var(--border)' }}
-                >
-                    <option value={10}>10 / page</option>
-                    <option value={25}>25 / page</option>
-                    <option value={50}>50 / page</option>
-                    <option value={100}>100 / page</option>
-                </select>
-            </div>
-        </div>
-    );
+    const clearDashboardFilter = () => {
+        clearDashboardDrivenFilters();
+        clearActiveDashboardFilter();
+        setPage(1);
+    };
 
     return (
         <RegisterLayout
-            title="Computer Register"
-            subtitle="Computers • Search and manage computers"
+            title="Asset Register"
+            subtitle="Centralized Hardware Inventory Management"
             totalCount={total}
-            pageInfo={`${page} / ${totalPages || 1}`}
+            pageInfo={`${page} / ${totalPages}`}
             toolbarContent={toolbarContent}
         >
-            {statusRow}
-            <table className="cr-table">
-                <thead>
-                    <tr>
-                        <th>Open</th>
-                        <th>Computer Name</th>
-                        <th>Status</th>
-                        <th>Owner</th>
-                        <th>Previous Owner</th>
-                        <th>Type</th>
-                        <th>Make</th>
-                        <th>Model</th>
-                        <th>Serial Number</th>
-                        <th>OS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {!loading && filteredRows.length === 0 ? (
-                        <tr>
-                            <td colSpan={10} className="cr-empty">
-                                No results found.
-                            </td>
-                        </tr>
-                    ) : (
-                        filteredRows.map((r) => (
-                            <tr key={r._id}>
-                                <td className="cr-openCell">
-                                    <button
-                                        type="button"
-                                        className="cr-openBtn"
-                                        onClick={() => onOpenAsset(r._id)}
-                                        disabled={!r._id}
-                                    >
-                                        {r.openId ?? r.assetTag ?? "Open"}
-                                    </button>
-                                </td>
-                                <td>{r.computerName ?? r.name ?? "-"}</td>
-                                <td>
-                                    <span className={`cr-pill cr-pill--${pillClass(r.status)}`}>
-                                        {r.status ?? "-"}
-                                    </span>
-                                </td>
-                                <td>{r.owner ?? r.assignedTo ?? "-"}</td>
-                                <td>{r.previousOwner ?? "-"}</td>
-                                <td>{r.type ?? "-"}</td>
-                                <td>{r.make ?? "-"}</td>
-                                <td>{r.model ?? "-"}</td>
-                                <td>{r.serialNumber ?? "-"}</td>
-                                <td>{r.os ?? "-"}</td>
-                            </tr>
-                        ))
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div className="cr-muted" style={{ display: "flex", alignItems: "center" }}>
+                    {loading ? "Refreshing..." : `Total ${displayRows.length} Assets Found`}
+                </div>
+
+                <div className="cr-search" style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 0 }}>
+                    <input
+                        className="cr-searchInput"
+                        placeholder="Search by Name, Serial, or Asset Tag..."
+                        value={searchText}
+                        onChange={(e) => {
+                            const nextValue = e.target.value;
+                            setSearchText(nextValue);
+                            if (!String(nextValue).trim()) {
+                                setActiveQuery("");
+                                clearDashboardDrivenFilters();
+                                clearActiveDashboardFilter();
+                                setPage(1);
+                            }
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && onSearch()}
+                    />
+                    <button className="btn-electric btnPrimary cr-searchBtn" onClick={onSearch}><span><FiSearch /> Search</span></button>
+                    {activeQuery && <button className="btn-electric btnGhost cr-ghost" onClick={onClearSearch}><span>Clear</span></button>}
+                    {activeDashboardFilter?.source === "assetDashboard" && (
+                        <button
+                            className="btn-electric btnGhost"
+                            type="button"
+                            onClick={clearDashboardFilter}
+                            style={{
+                                display: "none",
+                                border: "1px solid #00d4ff",
+                                background: "rgba(0,212,255,0.10)",
+                                color: "#00b4ff",
+                                borderRadius: 999,
+                                padding: "8px 12px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                            }}
+                        >
+                            <span>Filter: Refresh Required (5yr+) �</span>
+                        </button>
                     )}
-                </tbody>
-            </table>
+                    <button className="btn-electric btnGhost btn-icon-round cr-iconBtn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}><span><FiChevronLeft /></span></button>
+                    <button className="btn-electric btnGhost btn-icon-round cr-iconBtn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}><span><FiChevronRight /></span></button>
+                </div>
+            </div>
+
+            <div className="cr-tableScroll">
+                <table className="cr-table">
+                    <thead>
+                        <tr>
+                            <th>Asset Tag</th>
+                            <th>Device Name</th>
+                            <th>Status</th>
+                            <th>Owner</th>
+                            <th>Model</th>
+                            <th>Current Status</th>
+                            <th>Serial Number</th>
+                            <th style={{ minWidth: 90 }}>OS</th>
+                            <th style={{ minWidth: 80 }}>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {displayRows.length === 0 && !loading ? (
+                            <tr><td colSpan={9} className="cr-empty">No assets found in this scope.</td></tr>
+                        ) : (
+                            displayRows.map((r) => (
+                                <tr key={r._id || r.id}>
+                                    <td className="cr-openCell">
+                                        <button
+                                            className="btn-electric btnGhost cr-openBtn"
+                                            onClick={() => {
+                                                const id = r._id || r.id;
+                                                const rowCategory = getRowCategory(r);
+                                                const baseRoute = detailRouteByCategory[rowCategory] || "/computers";
+                                                navigate(`${baseRoute}/${id}`);
+                                            }}
+                                        >
+                                            <span>{r.assetTag || r.farNumber || "OPEN"}</span>
+                                        </button>
+                                    </td>
+                                    <td style={{ fontWeight: 600 }}>{getAssetName(r, getRowCategory(r))}</td>
+                                    <td>
+                                        <span className={`cr-pill cr-pill--${pillClass(r.status)}`}>
+                                            {r.status || "Unknown"}
+                                        </span>
+                                    </td>
+                                    <td style={{ color: 'var(--primary-blue)' }}>{r.ownerName || r.owner || "-"}</td>
+                                    <td>{r.model || "-"}</td>
+                                    <td>{r.currentStatus || r.status || "-"}</td>
+                                    <td>{r.serialNumber || "-"}</td>
+                                    <td>{r.os || "-"}</td>
+                                    <td>{
+                                        r.costZAR !== undefined && r.costZAR !== null
+                                            ? `R${Number(r.costZAR).toLocaleString()}`
+                                            : r.purchaseAmount !== undefined && r.purchaseAmount !== null
+                                                ? `R${Number(r.purchaseAmount).toLocaleString()}`
+                                                : "-"
+                                    }</td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* --- INTELLIGENT RISK THEMED MODAL --- */}
+            {isModalOpen && (
+                <div className="asset-modal-overlay" onClick={handleModalClose}>
+                    <div className="asset-modal" onClick={e => e.stopPropagation()}>
+                        <button className="btn-electric btnGhost asset-modal-close" onClick={handleModalClose}><span>�</span></button>
+                        <div className="asset-modal-title">ADD ASSET</div>
+                        <div className="asset-modal-button-box">
+                            <button className="btn-electric btnPrimary asset-modal-btn" onClick={() => handleAssetTypeSelect('computer')}>
+                                <span><FiMonitor size={24} style={{ minWidth: 28 }} /></span> <span>Computer</span>
+                            </button>
+                            <button className="btn-electric btnPrimary asset-modal-btn" onClick={() => handleAssetTypeSelect('server')}>
+                                <span><FiServer size={24} style={{ minWidth: 28 }} /></span> <span>Server</span>
+                            </button>
+                            <button className="btn-electric btnPrimary asset-modal-btn" onClick={() => handleAssetTypeSelect('networking')}>
+                                <span><FiCpu size={24} style={{ minWidth: 28 }} /></span> <span>Networking</span>
+                            </button>
+                            <button className="btn-electric btnPrimary asset-modal-btn" onClick={() => handleAssetTypeSelect('av')}>
+                                <span><FiVideo size={24} style={{ minWidth: 28 }} /></span> <span>Audio Visual</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+           
         </RegisterLayout>
     );
 }

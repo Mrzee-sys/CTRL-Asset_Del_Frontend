@@ -1,6 +1,6 @@
-﻿// src/pages/ComputerRegister/computerApi.js
+// src/pages/ComputerRegister/computerApi.js
 //
-// ✅ Updated: this file is now a thin adapter over the new data layer.
+// ? Updated: this file is now a thin adapter over the new data layer.
 // - NO direct fetch / URLs / query params here anymore
 // - The UI continues to import the same functions as before
 // - Mongo vs SQL switching will happen inside the repository facade later
@@ -9,9 +9,8 @@ import {
     getComputerById as repoGetById,
     createComputer as repoCreate,
     updateComputer as repoUpdate,
-    listComputers as repoList,
-    deleteComputer as repoDelete
-} from "../../data/Computers/computer.repository";
+    listComputers as repoList
+} from "../../data/Computer/Computer.repository.js";
 
 /**
  * LIST / SEARCH / PAGINATION

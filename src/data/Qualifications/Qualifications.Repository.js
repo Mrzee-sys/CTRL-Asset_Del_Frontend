@@ -1,7 +1,13 @@
-// Qualifications.Repository.js
 import { mongoQualificationsRepository } from "./Qualifications.repository.mongo";
+import { sqlQualificationsRepository } from "./Qualifications.repository.sql";
 
-const repo = mongoQualificationsRepository;
+const ACTIVE_DB =
+	(typeof import.meta !== "undefined" &&
+		import.meta.env &&
+		import.meta.env.VITE_ACTIVE_DB) ||
+	"mongo";
+
+const repo = ACTIVE_DB === "sql" ? sqlQualificationsRepository : mongoQualificationsRepository;
 
 // ✅ Keep these for long-form use
 export async function listQualifications(params = {}) { return repo.list(params); }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import DetailsLayout from "../DetailsLayout";
+import Zbot_Fields from "../../components/Zbot_Fields";
 import { listPeople, createPerson, updatePerson } from "../../data/People/People.Repository";
 import {
     listQualifications,
@@ -8,6 +9,7 @@ import {
     updateQualification,
     deleteQualification
 } from "../../data/Qualifications/Qualifications.Repository";
+import { getMedicalHistory, createMedicalRecord } from "../../data/MedicalHist/MedHist.Repository";
 
 // --- Helpers ---
 
@@ -64,6 +66,16 @@ export default function Peoplecards() {
     const [qualifications, setQualifications] = useState([]);
     const [qualLoading, setQualLoading] = useState(false);
 
+    // Medical history state
+    const [medRecords, setMedRecords] = useState([]);
+    const [medLoading, setMedLoading] = useState(false);
+    const [medForm, setMedForm] = useState({ last_medical_date: '', medical_type: '', expiry_date: '', fitness_status: '' });
+    const [medSaving, setMedSaving] = useState(false);
+    const [medError, setMedError] = useState('');
+   
+    // Organization people state for manager dropdown
+    const [orgPeople, setOrgPeople] = useState([]);
+
     const requestedEmail = useMemo(() => {
         try {
             return decodeURIComponent(email || '').trim().toLowerCase();
@@ -84,6 +96,7 @@ export default function Peoplecards() {
             setErr("");
             try {
                 const { rows } = await listPeople({ orgId: id, limit: 1000 });
+                   setOrgPeople(rows || []);
                 let loadedPerson = null;
 
                 if (isNewPerson) {
@@ -131,12 +144,30 @@ export default function Peoplecards() {
             setQualifications([]);
             return;
         }
+
         let alive = true;
         setQualLoading(true);
         listQualifications({ personId: pId })
             .then(qs => { if (alive) setQualifications(qs); })
             .catch(() => { if (alive) setQualifications([]); })
             .finally(() => { if (alive) setQualLoading(false); });
+        return () => { alive = false; };
+    }, [person?.id, person?._id]);
+
+    // Medical history effect
+    useEffect(() => {
+        const pId = person?.id || person?._id;
+        if (!pId) {
+            setMedRecords([]);
+            return;
+        }
+
+        let alive = true;
+        setMedLoading(true);
+        getMedicalHistory(pId)
+            .then(records => { if (alive) setMedRecords(records); })
+            .catch(() => { if (alive) setMedRecords([]); })
+            .finally(() => { if (alive) setMedLoading(false); });
         return () => { alive = false; };
     }, [person?.id, person?._id]);
 
@@ -170,7 +201,7 @@ export default function Peoplecards() {
         { label: "Email", key: "email" },
         { label: "Department", key: "department" },
         { label: "Status", key: "status", type: "select", options: ["", "Active", "Terminated", "Long Leave"] },
-        { label: "Manager", key: "manager" }
+           { label: "Manager", key: "manager", type: "manager" }
     ];
 
     // --- Handlers ---
@@ -246,6 +277,18 @@ export default function Peoplecards() {
         } catch (e) { console.error(e); }
     };
 
+    const medicalToday = new Date("2026-04-23T00:00:00");
+    const medicalHistory = medRecords;
+    const medicalTotalCount = medicalHistory.length;
+    const medicalExpiredCount = medicalHistory.filter((record) => {
+        const expiry = record?.expiry_date ? new Date(record.expiry_date) : null;
+        return expiry && !isNaN(expiry.getTime()) && expiry < medicalToday;
+    }).length;
+    const medicalValidCount = medicalHistory.filter((record) => {
+        const expiry = record?.expiry_date ? new Date(record.expiry_date) : null;
+        return expiry && !isNaN(expiry.getTime()) && expiry >= medicalToday;
+    }).length;
+
     // --- Layout ---
     const sidebar = (
         <div className="sideBlocks">
@@ -287,17 +330,34 @@ export default function Peoplecards() {
             </div>
 
             <div className="sideBlock">
+                <div className="sideBlock__title">MEDICAL SURVEILLANCE</div>
+                <ul className="sideBlock__list">
+                    {medLoading ? (
+                        <li>Loading...</li>
+                    ) : (
+                        <>
+                            <li>Total Medicals: {medicalTotalCount}</li>
+                            <li style={{ color: medicalExpiredCount > 0 ? '#ff3b47' : undefined }}>
+                                Expired: {medicalExpiredCount}
+                            </li>
+                            <li>Valid: {medicalValidCount}</li>
+                        </>
+                    )}
+                </ul>
+            </div>
+
+            <div className="sideBlock">
                 <div className="sideBlock__title">ACTIONS</div>
                 <div className="actionBlock__buttons">
-                    <button className="btn btnPrimary" onClick={() => setEditMode(!editMode)}>
-                        {editMode ? "Cancel Editing" : "Edit Details"}
+                    <button className="btn-electric btnPrimary" onClick={() => setEditMode(!editMode)}>
+                        <span>{editMode ? "Cancel Editing" : "Edit Details"}</span>
                     </button>
                     {editMode && (
-                        <button className="btn btnPrimary" onClick={savePersonUpdates} disabled={saving}>
-                            {saving ? "Saving..." : "Save Changes"}
+                        <button className="btn-electric btnPrimary" onClick={savePersonUpdates} disabled={saving}>
+                            <span>{saving ? "Saving..." : "Save Changes"}</span>
                         </button>
                     )}
-                    <button className="btn btnGhost" onClick={() => navigate(`/peporg/${id}`)}>Back to Org</button>
+                    <button className="btn-electric btnGhost" onClick={() => navigate(`/peporg/${id}`)}><span>Back to Org</span></button>
                 </div>
                 {saveStatus && <div style={{color: '#10b981', marginTop: 10, fontWeight: 700}}>{saveStatus}</div>}
                 {err && <div style={{color: '#ff3b47', marginTop: 10, fontSize: 13}}>{err}</div>}
@@ -312,11 +372,57 @@ export default function Peoplecards() {
             pillText="PEOPLE"
             sidebarContent={sidebar}
         >
+            <style>{`
+                .people-card-body {
+                    max-height: 65vh !important;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    padding-right: 12px;
+                }
+                .people-card-body .fieldGrid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 1.5rem;
+                    align-items: center;
+                }
+                .people-card-body .field {
+                    display: flex;
+                    flex-direction: column;
+                    min-width: 0;
+                }
+                .people-card-body .field.fieldFull {
+                    grid-column: 1 / -1;
+                }
+                .people-card-body .field .label,
+                .people-card-body .field .value,
+                .people-card-body .field .value.readonly {
+                    min-width: 0;
+                }
+                .people-card-body .field .value.readonly {
+                    word-break: break-word;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .people-card-body::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .people-card-body::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .people-card-body::-webkit-scrollbar-thumb {
+                    background: rgba(0, 255, 255, 0.3);
+                    border-radius: 10px;
+                }
+                .people-card-body::-webkit-scrollbar-thumb:hover {
+                    background: rgba(0, 255, 255, 0.6);
+                }
+            `}</style>
+
             <div className="tabBarContainer" style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-                {["details", "address", "qualifications"].map(tab => (
+                {["details", "address", "qualifications", "medicals"].map(tab => (
                     <button
                         key={tab}
-                        className={`btn ${activeTab === tab ? "btnPrimary" : "btnGhost"}`}
+                        className={`btn-electric ${activeTab === tab ? "btnPrimary" : "btnGhost"}`}
                         onClick={() => setActiveTab(tab)}
                     >
                         {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -324,75 +430,206 @@ export default function Peoplecards() {
                 ))}
             </div>
 
-            {activeTab === "details" && (
-                <div className="fieldGrid">
-                    {fields.map(f => (
-                        <div key={f.label} className="field">
-                            <label className="label">{f.label}</label>
-                            {editMode ? (
-                                f.type === "select" ? (
-                                    <select className="value" value={person?.[f.key] || ""} onChange={e => savePersonField(f.key, e.target.value)}>
-                                        {f.options.map(o => <option key={o} value={o}>{o || "Select..."}</option>)}
-                                    </select>
+            <div className="people-card-body">
+                {activeTab === "details" && (
+                    <div className="fieldGrid">
+                        {fields.map(f => (
+                            <div key={f.label} className="field">
+                                <label className="label">{f.label}</label>
+                                {editMode ? (
+                                    f.type === "select" ? (
+                                        <select className="value" value={person?.[f.key] || ""} onChange={e => savePersonField(f.key, e.target.value)}>
+                                            {f.options.map(o => <option key={o} value={o}>{o || "Select..."}</option>)}
+                                        </select>
+                                    ) : f.type === "manager" ? (
+                                        <select className="value" value={person?.[f.key] || ""} onChange={e => savePersonField(f.key, e.target.value)}>
+                                            <option value="">Unassigned</option>
+                                            {orgPeople
+                                                .filter(p => {
+                                                    const staffLevel = p.staffLevel || "";
+                                                    return staffLevel.includes("M1") || staffLevel.includes("M2") || staffLevel.includes("M3") || staffLevel.includes("E1") || staffLevel.includes("E2");
+                                                })
+                                                .map(p => <option key={p.id || p._id} value={p.id || p._id}>{p.firstName} {p.lastName}</option>)}
+                                        </select>
+                                    ) : (
+                                        <Zbot_Fields
+                                            type={f.type || "text"}
+                                            className="value"
+                                            value={person?.[f.key] || ""}
+                                            onChange={e => savePersonField(f.key, e.target.value)}
+                                            label={f.label}
+                                            name={f.key}
+                                        />
+                                    )
                                 ) : (
-                                    <input type={f.type || "text"} className="value" value={person?.[f.key] || ""} onChange={e => savePersonField(f.key, e.target.value)} />
-                                )
-                            ) : (
-                                <div className="value readonly">{person?.[f.key] || "—"}</div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {activeTab === "address" && (
-                <div className="fieldGrid">
-                    <div className="field fieldFull"><label className="label">Address Line 1</label>
-                        <input className="value" disabled={!editMode} value={draftAddressLine1} onChange={e => setDraftAddressLine1(e.target.value)} />
-                    </div>
-                    <div className="field"><label className="label">City</label>
-                        <input className="value" disabled={!editMode} value={draftCity} onChange={e => setDraftCity(e.target.value)} />
-                    </div>
-                    <div className="field"><label className="label">Postal Code</label>
-                        <input className="value" disabled={!editMode} value={draftPostalCode} onChange={e => setDraftPostalCode(e.target.value)} />
-                    </div>
-                </div>
-            )}
-
-            {activeTab === "qualifications" && (
-                <div className="qualSection">
-                    {editMode && (
-                        <div className="qualForm sideBlock" style={{marginBottom: 20}}>
-                            <div className="sideBlock__title">Add Qualification</div>
-                            <div className="fieldGrid">
-                                <div className="field"><label className="label">Name</label>
-                                    <input className="value" value={qName} onChange={e => setQName(e.target.value)} />
-                                </div>
-                                <div className="field"><label className="label">Obtained</label>
-                                    <input type="date" className="value" value={qObtained} onChange={e => setQObtained(e.target.value)} />
-                                </div>
-                                <div className="field"><label className="label">Renewal</label>
-                                    <input type="date" className="value" value={qRenewal} onChange={e => setQRenewal(e.target.value)} />
-                                </div>
+                                    <div className="value readonly">{person?.[f.key] || "—"}</div>
+                                )}
                             </div>
-                            <button className="btn btnPrimary" onClick={addQualification}>Add Qualification</button>
+                        ))}
+                    </div>
+                )}
+
+                {activeTab === "address" && (
+                    <div className="fieldGrid">
+                        <div className="field fieldFull"><label className="label">Address Line 1</label>
+                            <Zbot_Fields className="value" disabled={!editMode} value={draftAddressLine1} onChange={e => setDraftAddressLine1(e.target.value)} label="Address Line 1" name="addressLine1" />
                         </div>
-                    )}
-                    <table className="registerTable">
-                        <thead>
-                            <tr><th>Name</th><th>Obtained</th><th>Renewal</th>{editMode && <th>Action</th>}</tr>
-                        </thead>
-                        <tbody>
-                            {qualifications.map((q, i) => (
-                                <tr key={q.id || q._id || i}>
-                                    <td>{q.name}</td><td>{q.obtained}</td><td>{q.renewal}</td>
-                                    {editMode && <td><button className="btn btnGhost" onClick={() => removeQualification(i)}>Remove</button></td>}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                        <div className="field"><label className="label">City</label>
+                            <Zbot_Fields className="value" disabled={!editMode} value={draftCity} onChange={e => setDraftCity(e.target.value)} label="City" name="city" />
+                        </div>
+                        <div className="field"><label className="label">Postal Code</label>
+                            <Zbot_Fields className="value" disabled={!editMode} value={draftPostalCode} onChange={e => setDraftPostalCode(e.target.value)} label="Postal Code" name="postalCode" />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === "qualifications" && (
+                    <div className="qualSection">
+                        {editMode && (
+                            <div className="qualForm sideBlock" style={{marginBottom: 20}}>
+                                <div className="sideBlock__title">Add Qualification</div>
+                                <div className="fieldGrid">
+                                    <div className="field"><label className="label">Name</label>
+                                        <Zbot_Fields className="value" value={qName} onChange={e => setQName(e.target.value)} label="Qualification Name" name="qualificationName" />
+                                    </div>
+                                    <div className="field"><label className="label">Obtained</label>
+                                        <Zbot_Fields type="date" className="value" value={qObtained} onChange={e => setQObtained(e.target.value)} label="Obtained" name="obtained" />
+                                    </div>
+                                    <div className="field"><label className="label">Renewal</label>
+                                        <Zbot_Fields type="date" className="value" value={qRenewal} onChange={e => setQRenewal(e.target.value)} label="Renewal" name="renewal" />
+                                    </div>
+                                </div>
+                                <button className="btn-electric btnPrimary" onClick={addQualification}><span>Add Qualification</span></button>
+                            </div>
+                        )}
+                        <table className="registerTable">
+                            <thead>
+                                <tr><th>Name</th><th>Obtained</th><th>Renewal</th>{editMode && <th>Action</th>}</tr>
+                            </thead>
+                            <tbody>
+                                {qualifications.map((q, i) => (
+                                    <tr key={q.id || q._id || i}>
+                                        <td>{q.name}</td><td>{q.obtained}</td><td>{q.renewal}</td>
+                                        {editMode && <td><button className="btn-electric btnGhost" onClick={() => removeQualification(i)}><span>Remove</span></button></td>}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {activeTab === "medicals" && (
+                    <div className="qualSection">
+                        {editMode && (
+                            <div className="qualForm sideBlock" style={{ marginBottom: 20 }}>
+                                <div className="sideBlock__title">Add Medical Record</div>
+                                <div className="fieldGrid">
+                                    <div className="field"><label className="label">Medical Type</label>
+                                        <Zbot_Fields
+                                            className="value"
+                                            placeholder="e.g. Occupational Health"
+                                            value={medForm.medical_type}
+                                            onChange={e => setMedForm(f => ({ ...f, medical_type: e.target.value }))}
+                                            label="Medical Type"
+                                            name="medical_type"
+                                        />
+                                    </div>
+                                    <div className="field"><label className="label">Last Medical Date</label>
+                                        <Zbot_Fields
+                                            type="date"
+                                            className="value"
+                                            value={medForm.last_medical_date}
+                                            onChange={e => setMedForm(f => ({ ...f, last_medical_date: e.target.value }))}
+                                            label="Last Medical Date"
+                                            name="last_medical_date"
+                                        />
+                                    </div>
+                                    <div className="field"><label className="label">Expiry Date</label>
+                                        <Zbot_Fields
+                                            type="date"
+                                            className="value"
+                                            value={medForm.expiry_date}
+                                            onChange={e => setMedForm(f => ({ ...f, expiry_date: e.target.value }))}
+                                            label="Expiry Date"
+                                            name="expiry_date"
+                                        />
+                                    </div>
+                                    <div className="field"><label className="label">Fitness Status</label>
+                                        <select
+                                            className="value"
+                                            value={medForm.fitness_status}
+                                            onChange={e => setMedForm(f => ({ ...f, fitness_status: e.target.value }))}
+                                        >
+                                            <option value="">Select...</option>
+                                            <option>Fit</option>
+                                            <option>Fit with Restrictions</option>
+                                            <option>Temporarily Unfit</option>
+                                            <option>Unfit</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {medError && <div style={{ color: '#ff3b47', marginBottom: 8, fontSize: 13 }}>{medError}</div>}
+                                <button
+                                    className="btn-electric btnPrimary"
+                                    disabled={medSaving}
+                                    onClick={async () => {
+                                        setMedError('');
+                                        const pId = person?.id || person?._id;
+                                        if (!medForm.medical_type || !medForm.last_medical_date) {
+                                            setMedError('Medical Type and Last Medical Date are required.');
+                                            return;
+                                        }
+                                        setMedSaving(true);
+                                        try {
+                                            const created = await createMedicalRecord({
+                                                employee_id: pId,
+                                                medical_type: medForm.medical_type,
+                                                last_medical_date: medForm.last_medical_date,
+                                                expiry_date: medForm.expiry_date || null,
+                                                fitness_status: medForm.fitness_status,
+                                            });
+                                            setMedRecords(prev => [created, ...prev]);
+                                            localStorage.setItem('medhist:lastUpdate', String(Date.now()));
+                                            window.dispatchEvent(new Event('medhist-updated'));
+                                            setMedForm({ last_medical_date: '', medical_type: '', expiry_date: '', fitness_status: '' });
+                                        } catch (e) {
+                                            setMedError(e.message);
+                                        } finally {
+                                            setMedSaving(false);
+                                        }
+                                    }}
+                                >
+                                    <span>{medSaving ? 'Saving...' : 'Save Medical Record'}</span>
+                                </button>
+                            </div>
+                        )}
+                        {medLoading ? (
+                            <div style={{ color: '#b3e0ff' }}>Loading medical records...</div>
+                        ) : (
+                            <table className="registerTable">
+                                <thead>
+                                    <tr><th>Type</th><th>Last Medical</th><th>Expiry</th><th>Fitness Status</th><th>Document Ref</th></tr>
+                                </thead>
+                                <tbody>
+                                    {medRecords.length === 0 ? (
+                                        <tr><td colSpan={5} style={{ color: '#888', textAlign: 'center' }}>No medical records found</td></tr>
+                                    ) : (
+                                        medRecords.map((r, i) => (
+                                            <tr key={r._id || r.id || i}>
+                                                <td>{r.medical_type || '—'}</td>
+                                                <td>{r.last_medical_date ? new Date(r.last_medical_date).toLocaleDateString() : '—'}</td>
+                                                <td>{r.expiry_date ? new Date(r.expiry_date).toLocaleDateString() : '—'}</td>
+                                                <td>{r.fitness_status || '—'}</td>
+                                                <td style={{ fontSize: 12, wordBreak: 'break-all' }}>{r.document_ref || '—'}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+            </div>
         </DetailsLayout>
     );
-}
+} 

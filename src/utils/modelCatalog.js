@@ -4,6 +4,7 @@ const STORAGE_KEY = "assetreg_model_catalog_v1";
 
 const DEFAULT_CATALOG = {
     hp: [
+        "EliteBook 840 G6",
         "EliteBook 840 G8",
         "EliteBook 840 G9",
         "ProBook 440 G8",
@@ -40,11 +41,16 @@ function loadCatalog() {
         if (!raw) return { ...DEFAULT_CATALOG };
         const parsed = JSON.parse(raw);
 
-        // Merge defaults + saved so defaults always exist
-        return {
-            ...DEFAULT_CATALOG,
-            ...parsed
-        };
+        // Merge defaults + saved lists per make so newly added defaults remain available.
+        const merged = { ...DEFAULT_CATALOG };
+
+        Object.entries(parsed || {}).forEach(([make, list]) => {
+            const defaultList = Array.isArray(merged[make]) ? merged[make] : [];
+            const savedList = Array.isArray(list) ? list : [];
+            merged[make] = [...new Set([...defaultList, ...savedList])];
+        });
+
+        return merged;
     } catch {
         return { ...DEFAULT_CATALOG };
     }

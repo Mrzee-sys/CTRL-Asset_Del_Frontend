@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     FiMonitor,
@@ -9,10 +9,11 @@ import {
     FiActivity,
     FiCheckSquare
 } from "react-icons/fi";
+import gearIcon from "../../assets/logos/gear-settings.svg";
 
-// ✅ Correct paths based on your folder structure (up two levels)
-import { listComputers } from "../../data/Computers/Computer.repository";
-import { listQuals } from "../../data/Qualifications/Qualifications.Repository";
+// ? Correct paths based on your folder structure (up two levels)
+import { listComputers } from "../../data/Computer/Computer.repository.js";
+import { listQuals } from "../../data/Qualifications/Qualifications.Repository.js";
 
 import "./home.css";
 
@@ -33,14 +34,18 @@ export default function Home() {
                     listQuals({})
                 ]);
 
-                const computers = compData.rows || [];
-                const assigned = computers.filter(c => c.assignedTo && c.assignedTo !== "Unassigned").length;
-                
+                const computersRaw = compData?.rows ?? compData;
+                const qualsRaw = qualData?.rows ?? qualData;
+                console.log('Metrics Debug - Computers:', computersRaw);
+                const computers = Array.isArray(computersRaw) ? computersRaw : [];
+                const quals = Array.isArray(qualsRaw) ? qualsRaw : [];
+                const assigned = Array.isArray(computers) ? computers.filter(c => c.assignedTo && c.assignedTo !== "Unassigned").length : 0;
+
                 const now = new Date();
-                const expired = qualData.filter(q => q.renewal && new Date(q.renewal) < now).length;
+                const expired = Array.isArray(quals) ? quals.filter(q => q.renewal && new Date(q.renewal) < now).length : 0;
 
                 setMetrics({
-                    totalPCs: computers.length,
+                    totalPCs: Array.isArray(computers) ? computers.length : 0,
                     assignedPCs: assigned,
                     expiredQuals: expired
                 });
@@ -57,7 +62,7 @@ export default function Home() {
             sub: "Computers, Servers, Networking, AV",
             metric: `PC Allocation: ${metrics.assignedPCs} / ${metrics.totalPCs} Assigned`,
             icon: FiMonitor,
-            path: "/computers"
+            path: "/asset-dashboard"
         },
         {
             title: "Application Tracking",
@@ -71,7 +76,7 @@ export default function Home() {
             sub: "Staff certifications & Registration",
             metric: `${metrics.expiredQuals} Expired Quals Found`,
             icon: FiUsers,
-            path: "/peporg"
+            path: "/peporg/dashboard"
         },
         {
             title: "Behavioral Analytics",
@@ -100,9 +105,20 @@ export default function Home() {
         <div className="shell">
             <header className="topbar">
                 <div className="topbar__title">CTRL + Asset + DEL</div>
-                <div className="status-indicator">
-                    SYSTEM STATUS: ACTIVE
-                    <div className="pulse-dot"></div>
+                <div className="topbar__actions">
+                    <div className="status-indicator">
+                        SYSTEM STATUS: ACTIVE
+                        <div className="pulse-dot"></div>
+                    </div>
+                    <button
+                        type="button"
+                        className="settings-gear-btn"
+                        onClick={() => navigate("/settings")}
+                        aria-label="Open settings"
+                        title="Settings"
+                    >
+                        <img src={gearIcon} alt="Settings" />
+                    </button>
                 </div>
             </header>
 
@@ -119,7 +135,7 @@ export default function Home() {
                         {riskModules.map((m) => {
                             const Icon = m.icon;
                             return (
-                                <button key={m.title} className="tile" onClick={() => navigate(m.path)}>
+                                <button key={m.title} className="btn-electric btnGhost tile" onClick={() => navigate(m.path)}>
                                     <div className="tile__icon">
                                         <Icon />
                                     </div>
@@ -136,7 +152,7 @@ export default function Home() {
             </main>
 
             <footer className="footer">
-                <span>© {new Date().getFullYear()} CTRL + Asset + DEL</span>
+                <span>� {new Date().getFullYear()} CTRL + Asset + DEL</span>
                 <span className="footer__right">Tech2K IT - South Africa</span>
             </footer>
         </div>

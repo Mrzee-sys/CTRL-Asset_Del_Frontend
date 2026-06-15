@@ -56,12 +56,15 @@
     TABLE WRAPPER
     ========================================================= */
     .registerTableWrap {
-        margin-top: 8px;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
         background: var(--panel);
         border: 1px solid var(--border);
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         overflow: auto;
+        text-align: left;
     }
 
     /* =========================================================

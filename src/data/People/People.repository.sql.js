@@ -1,21 +1,17 @@
-// Organisation.repository.sql.js
-// SQL implementation for Organisation repository
-
-// Example stub
-module.exports = {
-  findAll: async () => {
-    // SQL logic here
+export const sqlPersonRepository = {
+  async list() {
+    return { rows: [], page: 1, limit: 50, total: 0, totalPages: 1 };
   },
-  findById: async (id) => {
-    // SQL logic here
+  async getById() {
+    throw new Error("SQL People repository is not implemented yet.");
   },
-  create: async (data) => {
-    // SQL logic here
+  async create() {
+    throw new Error("SQL People repository is not implemented yet.");
   },
-  update: async (id, data) => {
-    // SQL logic here
+  async update() {
+    throw new Error("SQL People repository is not implemented yet.");
   },
-  delete: async (id) => {
-    // SQL logic here
+  async remove() {
+    throw new Error("SQL People repository is not implemented yet.");
   },
 };

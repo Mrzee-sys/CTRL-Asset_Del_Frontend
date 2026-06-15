@@ -77,8 +77,8 @@ export default function IncidentManRegister() {
                 {/* Header Row */}
                 <header className="assetHeader">
                     <div className="assetHeader__nav">
-                        <button className="btn btnGhost" onClick={() => navigate("/")} type="button">
-                            ← Back
+                        <button className="btn-electric btnGhost" onClick={() => navigate("/")} type="button">
+                            <span>← Back</span>
                         </button>
                     </div>
 
