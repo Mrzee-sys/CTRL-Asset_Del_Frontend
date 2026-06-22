@@ -29,9 +29,15 @@ export async function fetchOrgs({ search = "", page = 1, limit = 50 } = {}) {
 // Fetch single organisation (The Edit Screen fix)
 // ===============================
 export async function fetchOrgById(id) {
-    // Requesting from: http://localhost:5000/api/peporg/:id
+    // 1. Prevent 400 errors when navigating to a new org or empty ID
+    if (!id || id === "new") return null; 
+    
+    // 2. THE MAGIC FIX: Strip the invisible spaces!
+    const cleanId = String(id).trim();
+
+    // Requesting from: http://localhost:5000/api/peporg/:cleanId
     const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/peporg/${id}`,
+    const res = await fetch(`${API}/peporg/${cleanId}`,
         {
             headers: {
                 Authorization: token ? `Bearer ${token}` : undefined
@@ -72,8 +78,13 @@ export async function createOrg(payload) {
 // Update organisation
 // ===============================
 export async function updateOrg(id, payload) {
+    if (!id) throw new Error("No ID provided for update");
+    
+    // Safety trim for updates too!
+    const cleanId = String(id).trim();
+
     const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/peporg/${id}`, {
+    const res = await fetch(`${API}/peporg/${cleanId}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",

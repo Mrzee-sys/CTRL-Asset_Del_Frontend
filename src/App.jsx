@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home/Home.jsx";
@@ -51,19 +50,24 @@ function AppContent() {
                     <div className="appContent">
                         <div className="appBody">
                             <DashboardFilterProvider>
-                                <Routes key={`${location.pathname}${location.search}`}>
+                                {/* ✅ THE FIX: Removed the key prop from Routes so React Router can transition smoothly */}
+                                <Routes>
                                     <Route path="/login" element={<LoginForm />} />
                                     <Route path="/" element={<Home />} />
+                                    
                                     {/* Asset Dashboard Route */}
                                     <Route path="/asset-dashboard" element={<AssetDashboard />} />
+                                    
                                     {/* Computer Routes */}
                                     <Route path="/computers" element={<ComputerRegister />} />
                                     <Route path="/computers/new" element={<ComputerCard mode="create" />} />
                                     <Route path="/computers/:id" element={<ComputerCard mode="view" />} />
+                                    
                                     {/* Server Routes */}
                                     <Route path="/servers" element={<ComputerRegister />} />
                                     <Route path="/servers/new" element={<ServerCard />} />
                                     <Route path="/servers/:id" element={<ServerCard />} />
+                                    
                                     {/* Networking & AV Routes */}
                                     <Route path="/networking" element={<ComputerRegister />} />
                                     <Route path="/networking/new" element={<NetworkCard mode="create" />} />
@@ -71,18 +75,24 @@ function AppContent() {
                                     <Route path="/av" element={<ComputerRegister />} />
                                     <Route path="/av-equipment/new" element={<AVCard mode="create" />} />
                                     <Route path="/av-equipment/:id" element={<AVCard mode="view" />} />
+                                    
                                     {/* People & Org Routes */}
                                     <Route path="/peporg/register" element={<PeporgRegister />} />
                                     <Route path="/peporg/new" element={<PeporgCard />} />
                                     <Route path="/peporg/dashboard" element={<PeopleDashboard />} />
+                                    
+                                    {/* This is the Add Person / View Person route. React Router matches this perfectly now. */}
                                     <Route path="/peporg/:id/people/:email" element={<Peoplecards />} />
+                                    
                                     <Route path="/peporg/:id" element={<PeporgCard />} />
                                     <Route path="/peporg" element={<Navigate to="/peporg/dashboard" replace />} />
                                     <Route path="/peoplecard/:id" element={<Peoplecards />} />
+                                    
                                     {/* Incident Routes */}
                                     <Route path="/incident-manage" element={<IncidentManRegister />} />
                                     <Route path="/incident/:orgId/:email" element={<IncidentCard />} />
                                     <Route path="/settings" element={<SettingsPage />} />
+                                    
                                     <Route path="*" element={<Navigate to="/" replace />} />
                                 </Routes>
                             </DashboardFilterProvider>

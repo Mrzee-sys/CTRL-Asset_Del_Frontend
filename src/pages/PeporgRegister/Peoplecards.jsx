@@ -42,6 +42,9 @@ export default function Peoplecards() {
     const location = useLocation();
     const { id, email } = useParams();
 
+    // ✅ Safely trim the ID 
+    const cleanId = id ? String(id).trim() : "";
+
     const [person, setPerson] = useState(null);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState("");
@@ -94,48 +97,58 @@ export default function Peoplecards() {
         async function load() {
             setLoading(true);
             setErr("");
+            
+            // ✅ THE FIX: Set blank person immediately so the UI doesn't render "undefined undefined"
+            if (isNewPerson) {
+                setPerson({
+                    firstName: "", lastName: "", email: "", status: "Active",
+                    phone: "", employeeType: "", classification: "", staffLevel: "",
+                    gender: "", age: "", idNumber: "", passport: "",
+                    dateJoined: new Date().toISOString()
+                });
+                setEditMode(true);
+            } else if (statePerson) {
+                setPerson({
+                    ...statePerson,
+                    contactNumber: statePerson.phone || "",
+                    employmentStatus: statePerson.employeeType || "",
+                });
+            }
+
             try {
-                const { rows } = await listPeople({ orgId: id, limit: 1000 });
-                   setOrgPeople(rows || []);
-                let loadedPerson = null;
+                // Fetch people to populate the manager dropdown
+                const { rows } = await listPeople({ orgId: cleanId, limit: 1000 });
+                if (alive) setOrgPeople(rows || []);
 
-                if (isNewPerson) {
-                    loadedPerson = {
-                        firstName: "", lastName: "", email: "", status: "Active",
-                        phone: "", employeeType: "", classification: "", staffLevel: "",
-                        gender: "", age: "", idNumber: "", passport: "",
-                        dateJoined: new Date().toISOString()
-                    };
-                } else if (statePerson) {
-                    loadedPerson = statePerson;
-                } else {
-                    loadedPerson = rows.find(p => (p.email || "").trim().toLowerCase() === requestedEmail);
-                }
-
-                if (loadedPerson && alive) {
-                    // ✅ PRO TIP: Map DB keys (phone/employeeType) to UI state keys
-                    setPerson({
-                        ...loadedPerson,
-                        contactNumber: loadedPerson.phone || "",
-                        employmentStatus: loadedPerson.employeeType || "",
-                        classification: loadedPerson.classification || "",
-                        staffLevel: loadedPerson.staffLevel || "",
-                        gender: loadedPerson.gender || "",
-                        age: loadedPerson.age || "",
-                        idNumber: loadedPerson.idNumber || "",
-                        passport: loadedPerson.passport || ""
-                    });
-                    setEditMode(isNewPerson);
+                // If not new and no state person, find them in the DB
+                if (!isNewPerson && !statePerson && alive) {
+                    const loadedPerson = rows.find(p => (p.email || "").trim().toLowerCase() === requestedEmail);
+                    if (loadedPerson) {
+                        setPerson({
+                            ...loadedPerson,
+                            contactNumber: loadedPerson.phone || "",
+                            employmentStatus: loadedPerson.employeeType || "",
+                            classification: loadedPerson.classification || "",
+                            staffLevel: loadedPerson.staffLevel || "",
+                            gender: loadedPerson.gender || "",
+                            age: loadedPerson.age || "",
+                            idNumber: loadedPerson.idNumber || "",
+                            passport: loadedPerson.passport || ""
+                        });
+                    } else {
+                        setErr("Person not found in this organisation.");
+                    }
                 }
             } catch (e) {
-                if (alive) setErr(e?.message || "Failed to load.");
+                // Catch backend 400 errors silently so they don't break the page
+                if (alive) setErr(e?.message || "Failed to load organisation data.");
             } finally {
                 if (alive) setLoading(false);
             }
         }
-        load();
+        if (cleanId) load();
         return () => { alive = false; };
-    }, [id, location.state, requestedEmail, isNewPerson]);
+    }, [cleanId, location.state, requestedEmail, isNewPerson]);
 
     // Qualifications Effect
     useEffect(() => {
@@ -213,10 +226,9 @@ export default function Peoplecards() {
         setSaving(true); 
         setSaveStatus("");
         try {
-            // ✅ PRO TIP: Map UI keys back to DB keys before saving
             const payload = {
                 ...person,
-                orgId: id,
+                orgId: cleanId, // ✅ Use cleanId for saving!
                 dateJoined: draftDateJoined ? new Date(draftDateJoined).toISOString() : person.dateJoined,
                 addressLine1: draftAddressLine1,
                 complexName: draftComplexName,
@@ -224,22 +236,21 @@ export default function Peoplecards() {
                 state: draftState,
                 postalCode: draftPostalCode,
                 country: draftCountry,
-                phone: String(person?.contactNumber || ""), // Map back to DB 'phone'
-                employeeType: person?.employmentStatus || "", // Map back to DB 'employeeType'
+                phone: String(person?.contactNumber || ""), 
+                employeeType: person?.employmentStatus || "", 
                 age: Number(person?.age) || 0
             };
-
-            console.log('TRANSFORMED PAYLOAD:', payload);
 
             let result;
             if (isNewPerson) {
                 result = await createPerson(payload);
+                const identifier = result.email || result.id || result._id;
+                navigate(`/peporg/${encodeURIComponent(cleanId)}/people/${encodeURIComponent(identifier)}`, { replace: true });
             } else {
                 const pid = person.id || person._id;
                 result = await updatePerson(pid, payload);
             }
 
-            // ✅ THE FIX: Re-map DB keys to UI keys after save so fields stay populated
             const remapped = {
                 ...result,
                 contactNumber: result.phone || "",
@@ -357,7 +368,7 @@ export default function Peoplecards() {
                             <span>{saving ? "Saving..." : "Save Changes"}</span>
                         </button>
                     )}
-                    <button className="btn-electric btnGhost" onClick={() => navigate(`/peporg/${id}`)}><span>Back to Org</span></button>
+                    <button className="btn-electric btnGhost" onClick={() => navigate(`/peporg/${encodeURIComponent(cleanId)}`)}><span>Back to Org</span></button>
                 </div>
                 {saveStatus && <div style={{color: '#10b981', marginTop: 10, fontWeight: 700}}>{saveStatus}</div>}
                 {err && <div style={{color: '#ff3b47', marginTop: 10, fontSize: 13}}>{err}</div>}
@@ -365,9 +376,16 @@ export default function Peoplecards() {
         </div>
     );
 
+    // ✅ THE FIX: Safely parse the title so "undefined undefined" never happens
+    const pageTitle = isNewPerson 
+        ? "New Person" 
+        : person 
+            ? `${person.firstName || ''} ${person.lastName || ''}`.trim() || "Unnamed Person"
+            : "Loading...";
+
     return (
         <DetailsLayout
-            title={person ? `${person.firstName} ${person.lastName}` : "Loading..."}
+            title={pageTitle}
             subtitle="Person Detail View"
             pillText="PEOPLE"
             sidebarContent={sidebar}
@@ -419,15 +437,28 @@ export default function Peoplecards() {
             `}</style>
 
             <div className="tabBarContainer" style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-                {["details", "address", "qualifications", "medicals"].map(tab => (
-                    <button
-                        key={tab}
-                        className={`btn-electric ${activeTab === tab ? "btnPrimary" : "btnGhost"}`}
-                        onClick={() => setActiveTab(tab)}
-                    >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </button>
-                ))}
+                {["details", "address", "qualifications", "medicals"].map(tab => {
+                    const isLocked = isNewPerson && (tab === "qualifications" || tab === "medicals");
+                    
+                    return (
+                        <button
+                            key={tab}
+                            className={`btn-electric ${activeTab === tab ? "btnPrimary" : "btnGhost"}`}
+                            onClick={() => {
+                                if (isLocked) {
+                                    alert(`Please save the person's details first before adding ${tab}.`);
+                                    return;
+                                }
+                                setActiveTab(tab);
+                            }}
+                            style={{ opacity: isLocked ? 0.5 : 1, cursor: isLocked ? "not-allowed" : "pointer", textTransform: 'capitalize', fontWeight: 600, fontSize: 16 }}
+                            title={isLocked ? "Save person first" : ""}
+                        >
+                            {tab}
+                            {isLocked && " 🔒"}
+                        </button>
+                    );
+                })}
             </div>
 
             <div className="people-card-body">
@@ -632,4 +663,4 @@ export default function Peoplecards() {
             </div>
         </DetailsLayout>
     );
-} 
+}

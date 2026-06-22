@@ -1,9 +1,14 @@
+const API = import.meta.env.VITE_API_BASE_URL;
+
 // ===============================
 // Update a single person
 // ===============================
 export async function updatePerson(id, payload) {
+    if (!id) throw new Error("No ID provided for update");
+    const cleanId = String(id).trim();
+
     const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/people/${id}`, {
+    const res = await fetch(`${API}/people/${cleanId}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
@@ -17,7 +22,6 @@ export async function updatePerson(id, payload) {
     }
     return res.json();
 }
-const API = import.meta.env.VITE_API_BASE_URL;
 
 // ===============================
 // Fetch organisation list
@@ -48,8 +52,12 @@ export async function fetchOrgs({ search = "", page = 1, limit = 50 } = {}) {
 // Fetch single organisation
 // ===============================
 export async function fetchOrgById(id) {
+    // Prevent 400 errors when the route is /peporg/new
+    if (!id || id === "new") return null; 
+    
+    const cleanId = String(id).trim();
     const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/peporg/${id}`,
+    const res = await fetch(`${API}/peporg/${cleanId}`,
         {
             headers: {
                 Authorization: token ? `Bearer ${token}` : undefined
@@ -90,8 +98,11 @@ export async function createOrg(payload) {
 // Update organisation
 // ===============================
 export async function updateOrg(id, payload) {
+    if (!id) throw new Error("No ID provided for update");
+    const cleanId = String(id).trim();
+
     const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/peporg/${id}`, {
+    const res = await fetch(`${API}/peporg/${cleanId}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
@@ -112,8 +123,12 @@ export async function updateOrg(id, payload) {
 // Fetch all people for an organisation
 // ===============================
 export async function fetchPeopleByOrg(orgId) {
+    // Prevent 400 errors when navigating to a new org
+    if (!orgId || orgId === "new") return []; 
+
+    const cleanId = String(orgId).trim();
     const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/people?orgId=${orgId}`,
+    const res = await fetch(`${API}/people?orgId=${cleanId}`,
         {
             headers: {
                 Authorization: token ? `Bearer ${token}` : undefined

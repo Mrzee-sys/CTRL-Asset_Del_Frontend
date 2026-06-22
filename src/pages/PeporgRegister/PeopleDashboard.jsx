@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { FiUserCheck, FiFileText, FiShield, FiActivity, FiBook, FiAlertTriangle } from "react-icons/fi";
 import { Plus, Pencil, UploadCloud, CloudDownload, Building2, Landmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -24,10 +24,17 @@ export default function PeopleDashboard() {
   const [medRecords, setMedRecords] = useState([]);
 
   const handleOrgClick = () => {
-    if (selectedOrgId) navigate(`/peporg/${selectedOrgId}`);
+    if (selectedOrgId) {
+      const cleanId = String(selectedOrgId).trim();
+      navigate(`/peporg/${encodeURIComponent(cleanId)}`);
+    }
   };
+  
   const handlePplClick = () => {
-    if (selectedOrgId) navigate(`/peporg/${selectedOrgId}`, { state: { initialTab: "people" } });
+    if (selectedOrgId) {
+      const cleanId = String(selectedOrgId).trim();
+      navigate(`/peporg/${encodeURIComponent(cleanId)}`, { state: { initialTab: "people" } });
+    }
   };
 
   useEffect(() => {
@@ -99,12 +106,14 @@ export default function PeopleDashboard() {
     };
   }, []);
 
-  const filteredPeople = selectedOrgId 
-    ? people.filter(p => String(p.orgId) === String(selectedOrgId)) 
-    : [];
-  const filteredQuals = selectedOrgId 
-    ? qualifications.filter(q => String(q.orgId) === String(selectedOrgId)) 
-    : [];
+  // ✅ THE FIX: Wrap these in useMemo to KILL THE INFINITE LOOP that was freezing the router
+  const filteredPeople = useMemo(() => {
+    return selectedOrgId ? people.filter(p => String(p.orgId) === String(selectedOrgId)) : [];
+  }, [selectedOrgId, people]);
+
+  const filteredQuals = useMemo(() => {
+    return selectedOrgId ? qualifications.filter(q => String(q.orgId) === String(selectedOrgId)) : [];
+  }, [selectedOrgId, qualifications]);
 
   const totalPeopleCount = selectedOrgId ? filteredPeople.length : 0;
   const now = new Date();
@@ -129,7 +138,7 @@ export default function PeopleDashboard() {
     const uniqueIds = Array.from(new Set(ids));
     setExpiredPeopleIds(uniqueIds);
     setExpiredCount(uniqueIds.length);
-  }, [selectedOrgId, filteredPeople, qualifications]);
+  }, [selectedOrgId, filteredPeople, qualifications, todayStr]);
 
   // Tile 1: Certification Compliance based on unique people with valid qualifications
   const personIdsInOrg = new Set(filteredPeople.map((p) => String(p.id || p._id)));
@@ -158,7 +167,6 @@ export default function PeopleDashboard() {
     return ["valid", "completed", "cleared", "pass", "passed", "approved", "active", "fit"].some((status) => normalized.includes(status));
   };
 
-  // ── Tile 2/3: Medical Surveillance and Occupational Health — driven by MedHist.Repository records ──
   const medLatestByEmployee = selectedOrgId
     ? (() => {
         const byPerson = new Map();
@@ -179,7 +187,6 @@ export default function PeopleDashboard() {
   const twelveMonthsAgo = new Date(now);
   twelveMonthsAgo.setFullYear(now.getFullYear() - 1);
 
-  // Tile 2: Medical Surveillance count (employees with last medical in last 12 months)
   const medicalRecentCount = selectedOrgId
     ? medLatestByEmployee.filter((record) => {
         const lastMedical = parseDate(record.last_medical_date);
@@ -189,20 +196,6 @@ export default function PeopleDashboard() {
 
   const normalizeMedicalStatus = (value) => String(value || "").trim().toLowerCase();
 
-  // Aggregations from medical history records
-  const medTypePreEmployment = selectedOrgId
-    ? medRecords.filter((r) => String(r.medical_type || "").trim().toLowerCase() === "pre-employment").length
-    : 0;
-  const medTypePeriodic = selectedOrgId
-    ? medRecords.filter((r) => String(r.medical_type || "").trim().toLowerCase() === "periodic").length
-    : 0;
-  const medTypeExit = selectedOrgId
-    ? medRecords.filter((r) => String(r.medical_type || "").trim().toLowerCase() === "exit").length
-    : 0;
-
-  const medFitnessFitRecords = selectedOrgId
-    ? medRecords.filter((r) => normalizeMedicalStatus(r.fitness_status) === "fit").length
-    : 0;
   const medFitnessRestrictedRecords = selectedOrgId
     ? medRecords.filter((r) => normalizeMedicalStatus(r.fitness_status) === "fit with restrictions").length
     : 0;
@@ -265,7 +258,6 @@ export default function PeopleDashboard() {
 
   const medPct = selectedOrgId && totalPeopleCount > 0 ? Math.round((medFitCount / totalPeopleCount) * 100) : 0;
 
-  // ── Tile 4: Training Inductions ──
   const inductionComplete = selectedOrgId
     ? filteredPeople.filter((p) => {
         if (p.mandatoryTrainingComplete === true) return true;
@@ -274,13 +266,11 @@ export default function PeopleDashboard() {
     : 0;
   const inductionPct = selectedOrgId && totalPeopleCount > 0 ? Math.round((inductionComplete / totalPeopleCount) * 100) : 0;
 
-  // ── Tile 5: Documentation Status ──
   const docsComplete = selectedOrgId
     ? filteredPeople.filter((p) => p.signedNDA === true).length
     : 0;
   const docsPct = selectedOrgId && totalPeopleCount > 0 ? Math.round((docsComplete / totalPeopleCount) * 100) : 0;
 
-  // ── Tile 6: Background Vetting ──
   const vettingComplete = selectedOrgId
     ? filteredPeople.filter((p) => {
         const criminalOk = p.criminalCheckCleared === true || isPositiveStatus(p.criminalCheckStatus);
@@ -291,7 +281,6 @@ export default function PeopleDashboard() {
     : 0;
   const vettingPct = selectedOrgId && totalPeopleCount > 0 ? Math.round((vettingComplete / totalPeopleCount) * 100) : 0;
 
-  // ── Sidebar metrics ──
   const avgAge = selectedOrgId && filteredPeople.length > 0
     ? Math.round(
         filteredPeople.reduce((sum, person) => {
@@ -314,7 +303,6 @@ export default function PeopleDashboard() {
       ).toFixed(1)
     : "--";
 
-  // ── Age Distribution SVG ──
   let under30 = 0;
   let age30to39 = 0;
   let age40to49 = 0;
@@ -332,13 +320,6 @@ export default function PeopleDashboard() {
   });
 
   const toChartY = (count) => Math.max(5, 100 - (count * 10));
-  const ageLinePoints = [
-    `0,${toChartY(under30)}`,
-    `75,${toChartY(age30to39)}`,
-    `150,${toChartY(age40to49)}`,
-    `225,${toChartY(age50to59)}`,
-    `300,${toChartY(over60)}`,
-  ].join(" ");
   const ageBarData = [
     { label: "<30", count: under30, x: 10 },
     { label: "30-39", count: age30to39, x: 70 },
@@ -347,7 +328,6 @@ export default function PeopleDashboard() {
     { label: "60+", count: over60, x: 250 },
   ];
 
-  // ── statCard tile helper (matches AssetDashboard pattern) ──
   const metricTileStyle = {
     width: "100%", minHeight: 300, height: 300, maxHeight: 300,
     display: "flex", flexDirection: "column", alignItems: "stretch",
@@ -384,27 +364,30 @@ export default function PeopleDashboard() {
 
   const navPeople = (filter) => {
     if (!selectedOrgId) return;
-    navigate(`/peporg/${selectedOrgId}`, { state: { initialTab: "people", ...(filter ? { initialFilter: filter } : {}) } });
+    const cleanId = String(selectedOrgId).trim();
+    navigate(`/peporg/${encodeURIComponent(cleanId)}`, { state: { initialTab: "people", ...(filter ? { initialFilter: filter } : {}) } });
   };
 
   const handleAddPerson = () => {
     if (!selectedOrgId) return;
-    window.location.assign(`/peporg/${selectedOrgId}/people/new`);
+    const cleanId = String(selectedOrgId).trim();
+    navigate(`/peporg/${encodeURIComponent(cleanId)}/people/new`);
   };
 
   const handleAddOrganization = () => {
-    // Use hard navigation fallback to avoid stale dashboard rendering in some sessions.
-    window.location.assign(`/peporg/new`);
+    navigate(`/peporg/new`);
   };
 
   const handleEditOrganization = () => {
     if (!selectedOrgId) return;
-    navigate(`/peporg/${selectedOrgId}`);
+    const cleanId = String(selectedOrgId).trim();
+    navigate(`/peporg/${encodeURIComponent(cleanId)}`);
   };
 
   const handleImportPeople = () => {
     if (!selectedOrgId) return;
-    navigate(`/peporg/${selectedOrgId}`, { state: { initialTab: "details" } });
+    const cleanId = String(selectedOrgId).trim();
+    navigate(`/peporg/${encodeURIComponent(cleanId)}`, { state: { initialTab: "details" } });
   };
 
   const handleDownloadTemplate = () => {
@@ -422,7 +405,8 @@ export default function PeopleDashboard() {
 
   const handleOpenScopedOrgRegister = () => {
     if (!selectedOrgId) return;
-    window.location.assign(`/peporg/${selectedOrgId}`);
+    const cleanId = String(selectedOrgId).trim();
+    navigate(`/peporg/${encodeURIComponent(cleanId)}`);
   };
 
   const sidebar = (
@@ -446,13 +430,15 @@ export default function PeopleDashboard() {
           title={selectedOrgId ? "Open people list" : "Select an organisation"}
           onClick={() => {
             if (!selectedOrgId) return;
-            window.location.assign(`/peporg/${selectedOrgId}?tab=people`);
+            const cleanId = String(selectedOrgId).trim();
+            navigate(`/peporg/${encodeURIComponent(cleanId)}?tab=people`);
           }}
           onKeyDown={(e) => {
             if (!selectedOrgId) return;
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              window.location.assign(`/peporg/${selectedOrgId}?tab=people`);
+              const cleanId = String(selectedOrgId).trim();
+              navigate(`/peporg/${encodeURIComponent(cleanId)}?tab=people`);
             }
           }}
         >
