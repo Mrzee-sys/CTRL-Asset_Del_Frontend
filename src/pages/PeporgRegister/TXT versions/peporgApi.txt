@@ -1,29 +1,6 @@
 const API = import.meta.env.VITE_API_BASE_URL;
 
 // ===============================
-// Update a single person
-// ===============================
-export async function updatePerson(id, payload) {
-    if (!id) throw new Error("No ID provided for update");
-    const cleanId = String(id).trim();
-
-    const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/people/${cleanId}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : undefined
-        },
-        body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-        const msg = await safeMessage(res);
-        throw new Error(msg || `Failed to update person (${res.status})`);
-    }
-    return res.json();
-}
-
-// ===============================
 // Fetch organisation list
 // ===============================
 export async function fetchOrgs({ search = "", page = 1, limit = 50 } = {}) {
@@ -49,13 +26,16 @@ export async function fetchOrgs({ search = "", page = 1, limit = 50 } = {}) {
 }
 
 // ===============================
-// Fetch single organisation
+// Fetch single organisation (The Edit Screen fix)
 // ===============================
 export async function fetchOrgById(id) {
-    // Prevent 400 errors when the route is /peporg/new
+    // 1. Prevent 400 errors when navigating to a new org or empty ID
     if (!id || id === "new") return null; 
     
+    // 2. THE MAGIC FIX: Strip the invisible spaces!
     const cleanId = String(id).trim();
+
+    // Requesting from: http://localhost:5000/api/peporg/:cleanId
     const token = localStorage.getItem("token") || "";
     const res = await fetch(`${API}/peporg/${cleanId}`,
         {
@@ -99,6 +79,8 @@ export async function createOrg(payload) {
 // ===============================
 export async function updateOrg(id, payload) {
     if (!id) throw new Error("No ID provided for update");
+    
+    // Safety trim for updates too!
     const cleanId = String(id).trim();
 
     const token = localStorage.getItem("token") || "";
@@ -120,37 +102,9 @@ export async function updateOrg(id, payload) {
 }
 
 // ===============================
-// Fetch all people for an organisation
-// ===============================
-export async function fetchPeopleByOrg(orgId) {
-    // Prevent 400 errors when navigating to a new org
-    if (!orgId || orgId === "new") return []; 
-
-    const cleanId = String(orgId).trim();
-    const token = localStorage.getItem("token") || "";
-    const res = await fetch(`${API}/people?orgId=${cleanId}`,
-        {
-            headers: {
-                Authorization: token ? `Bearer ${token}` : undefined
-            }
-        }
-    );
-    if (!res.ok) {
-        throw new Error(`Failed to load people (${res.status})`);
-    }
-    return res.json();
-}
-
-// ===============================
-// Create a single person (Crucial for CSV Import)
+// Create a single person
 // ===============================
 export async function createPerson(payload) {
-    // FIX: Ensure no empty ID is sent, allowing SQL IDENTITY to handle auto-increment
-    const cleanedPayload = { ...payload };
-    if (!cleanedPayload.id || cleanedPayload.id === "" || cleanedPayload.id === "new") {
-        delete cleanedPayload.id;
-    }
-
     const token = localStorage.getItem("token") || "";
     const res = await fetch(`${API}/people`, {
         method: "POST",
@@ -158,7 +112,7 @@ export async function createPerson(payload) {
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : undefined
         },
-        body: JSON.stringify(cleanedPayload),
+        body: JSON.stringify(payload),
     });
     if (!res.ok) {
         const msg = await safeMessage(res);

@@ -123,16 +123,15 @@
 
 /* 3. The Grid holds the left panel and right sidebar */
 .assetGrid {
-    display: grid !important;
-    grid-template-columns: 3fr 1fr !important;
+    display: grid;
+    grid-template-columns: 1fr 320px;
     align-items: stretch;
     justify-content: flex-start;
     justify-items: stretch;
     flex: 1;
     min-height: 0; /* Critical for flex scrolling */
     width: 100%;
-    max-width: none !important;
-    gap: 16px;
+    gap: 24px;
     margin: 0;
 }
 
@@ -184,7 +183,7 @@
     min-width: 0;
     max-width: 100%;
     position: sticky;
-    top: 0;
+    top: 20px;
     align-self: flex-start;
     height: 100%;
     max-height: 100%;
@@ -520,4 +519,34 @@
 
 .zbot-field-row-align .btn-electric {
   margin-bottom: 0;
+}
+
+/* New Bucket Layout */
+.bucket {
+    background: rgba(30, 29, 42, 0.55); /* Smokey semi-transparent background */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px); /* For Safari */
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+.bucket-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: #eaf6ff; /* Lighter text for dark background */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@media (max-width: 1024px) {
+    .assetGrid {
+        grid-template-columns: 1fr;
+    }
+    .panelSticky {
+        position: relative;
+        top: auto;
+    }
 }

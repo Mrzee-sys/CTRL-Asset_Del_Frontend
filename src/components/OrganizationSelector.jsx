@@ -10,26 +10,37 @@ export default function OrganizationSelector({ selectedOrgId, setSelectedOrgId, 
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/organisations");
+        // Grab the token from localStorage
+        const token = localStorage.getItem("token") || "";
+        
+        // Attach the token to the fetch call headers
+        const res = await fetch("/api/organisations", {
+          headers: {
+            "Authorization": token ? `Bearer ${token}` : undefined
+          }
+        });
+        
         const data = await res.json();
-        // Expecting array of orgs with _id and name
-        if (!Array.isArray(data) || data.length === 0) {
+        
+        // Ensure data is an array
+        const orgArray = Array.isArray(data) ? data : (data.rows || []);
+        
+        if (orgArray.length === 0) {
           setOrgs([]);
           setError("No organizations found");
-          console.log("Fetched organizations: 0");
           return;
         }
-        // Defensive mapping for _id and name
-        const mapped = data.map(org => ({
-          _id: org._id || org.id || org.orgId || org.value,
-          name: org.name || org.orgName || org.label || "Unnamed Org"
+
+        // Updated mapping: explicitly look for 'id' and 'orgName' which come from SQL
+        const mapped = orgArray.map(org => ({
+          _id: org.id || org._id || org.orgId,
+          name: org.orgName || org.name || org.label || "Unnamed Org"
         }));
+        
         setOrgs(mapped);
-        console.log(`Fetched organizations: ${mapped.length}`);
       } catch (e) {
         setError("Failed to fetch organizations");
         setOrgs([]);
-        console.log("Fetched organizations: 0 (error)");
       } finally {
         setLoading(false);
       }
@@ -44,7 +55,6 @@ export default function OrganizationSelector({ selectedOrgId, setSelectedOrgId, 
       setSelectedOrgId(stored);
       if (onOrgChange) onOrgChange(stored);
     }
-    // eslint-disable-next-line
   }, []);
 
   // On change, persist to localStorage and notify parent
